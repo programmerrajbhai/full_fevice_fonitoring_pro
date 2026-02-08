@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:full_fevice_fonitoring_pro/screens/main_layout.dart';
 import 'screens/login_screen.dart';
 
 void main() {
@@ -14,7 +15,8 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Hacker App',
       theme: ThemeData.dark(), // ডিফল্ট ডার্ক থিম
-      home: const LoginScreen(),
+// lib/main.dart
+      home: const MainLayout(),
     );
   }
 }
