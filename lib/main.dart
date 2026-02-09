@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:full_fevice_fonitoring_pro/screens/main_layout.dart';
-import 'screens/login_screen.dart';
+import 'screens/splash_screen.dart'; // ইম্পোর্ট করুন
 
 void main() {
   runApp(const MyApp());
@@ -13,10 +12,9 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Hacker App',
-      theme: ThemeData.dark(), // ডিফল্ট ডার্ক থিম
-// lib/main.dart
-      home: const MainLayout(),
+      title: 'Device Monitor Pro',
+      theme: ThemeData.dark(),
+      home: const SplashScreen(), // এখান থেকে শুরু হবে
     );
   }
 }
