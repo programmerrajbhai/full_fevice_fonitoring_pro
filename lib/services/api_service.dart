@@ -78,4 +78,49 @@ class ApiService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear(); // সব ডাটা মুছে ফেলবে
   }
+
+
+
+
+  // --- 4. GET PROFILE DATA ---
+  static Future<Map<String, dynamic>> getProfile() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getInt('user_id');
+
+      if (userId == null) return {"success": false, "message": "No user found"};
+
+      final response = await http.post(
+        Uri.parse("$baseUrl/get_profile.php"),
+        body: jsonEncode({"user_id": userId}),
+        headers: {"Content-Type": "application/json"},
+      );
+
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {"success": false, "message": "Server Error"};
+    }
+  }
+
+  // --- 5. BUY SUBSCRIPTION (MOCK) ---
+  static Future<Map<String, dynamic>> upgradeUser() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getInt('user_id');
+
+      final response = await http.post(
+        Uri.parse("$baseUrl/upgrade_subscription.php"),
+        body: jsonEncode({"user_id": userId}),
+        headers: {"Content-Type": "application/json"},
+      );
+
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {"success": false, "message": "Connection Error"};
+    }
+  }
+
+
+
+
 }
