@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import '../constants.dart';
 import '../widgets/hacker_button.dart';
 import '../services/api_service.dart';
-import 'login_screen.dart'; // লগইন স্ক্রিন ইম্পোর্ট করা হলো
+import 'login_screen.dart';
+import 'subscription_screen.dart'; // সাবস্ক্রিপশন স্ক্রিন ইম্পোর্ট
 
 class ProfileScreen extends StatefulWidget {
   final bool isPremium;
@@ -22,6 +23,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String username = "LOADING...";
   String email = "LOADING...";
   String joinDate = "LOADING...";
+  String planType = "Free"; // নতুন ভেরিয়েবল
   bool isLoading = true;
 
   @override
@@ -38,6 +40,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           username = data['username'].toString().toUpperCase();
           email = data['email'];
           joinDate = data['joined_date'];
+          planType = data['plan_type'] ?? "Free"; // প্ল্যান ডাটা সেট করা হলো
         } else {
           username = "UNKNOWN";
         }
@@ -46,28 +49,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  void _handleUpgrade() async {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Processing Payment... Please wait.")),
+  // --- NEW UPGRADE LOGIC ---
+  void _navigateToSubscription() async {
+    // সরাসরি সাবস্ক্রিপশন পেজে নিয়ে যাবে
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const SubscriptionScreen()),
     );
 
-    final result = await ApiService.upgradeUser();
-
-    if (result['success']) {
-      widget.onUpgrade();
+    // যদি পেমেন্ট সফল হয় এবং ফিরে আসে
+    if (result == true) {
+      widget.onUpgrade(); // মেইন লেআউট আপডেট
+      _fetchProfileData(); // প্রোফাইল ডাটা রিফ্রেশ
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("ACCESS GRANTED! You are now ADMIN.")),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result['message']), backgroundColor: Colors.red),
+        const SnackBar(content: Text("Profile Updated! Welcome to VIP.")),
       );
     }
   }
 
   // --- LOGOUT FUNCTION ---
   void _handleLogout() async {
-    // ১. নিশ্চিত হওয়ার জন্য ডায়লগ দেখানো
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -88,14 +89,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           TextButton(
             onPressed: () async {
-              Navigator.pop(context); // ডায়লগ বন্ধ
-              await ApiService.logout(); // ডাটা ক্লিয়ার
+              Navigator.pop(context);
+              await ApiService.logout();
               if (mounted) {
-                // লগইন স্ক্রিনে ফেরত যাওয়া
                 Navigator.pushAndRemoveUntil(
                   context,
                   MaterialPageRoute(builder: (context) => const LoginScreen()),
-                  (route) => false,
+                      (route) => false,
                 );
               }
             },
@@ -131,94 +131,94 @@ class _ProfileScreenState extends State<ProfileScreen> {
       body: isLoading
           ? const Center(child: CircularProgressIndicator(color: kPrimaryColor))
           : SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            const SizedBox(height: 20),
+
+            // --- AVATAR SECTION ---
+            _buildAvatarSection(statusColor, isVip),
+
+            const SizedBox(height: 30),
+
+            // --- INFO CARD ---
+            Container(
+              width: double.infinity,
               padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: const Color(0xFF111111),
+                border: Border.all(color: statusColor.withOpacity(0.5)),
+                borderRadius: BorderRadius.circular(4),
+              ),
               child: Column(
                 children: [
-                  const SizedBox(height: 20),
-
-                  // --- AVATAR SECTION ---
-                  _buildAvatarSection(statusColor, isVip),
-
-                  const SizedBox(height: 30),
-
-                  // --- INFO CARD ---
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF111111),
-                      border: Border.all(color: statusColor.withOpacity(0.5)),
-                      borderRadius: BorderRadius.circular(
-                        4,
-                      ), // শার্প কর্নার একটু স্মুথ করা হলো
-                    ),
-                    child: Column(
-                      children: [
-                        _buildRow("IDENTITY", username),
-                        const Divider(color: Colors.white10),
-                        _buildRow("EMAIL", email),
-                        const Divider(color: Colors.white10),
-                        _buildRow("ESTABLISHED", joinDate),
-                        const Divider(color: Colors.white10),
-                        _buildRow(
-                          "ACCESS LEVEL",
-                          isVip ? "ADMIN (VIP)" : "RESTRICTED",
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 30),
-
-                  // --- MAIN ACTION BUTTON ---
-                  if (!isVip) ...[
-                    const Text(
-                      "UPGRADE REQUIRED FOR FULL ACCESS",
-                      style: TextStyle(
-                        color: Colors.grey,
-                        fontSize: 10,
-                        fontFamily: 'Courier',
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    HackerButton(
-                      text: "UNLOCK PREMIUM (\$10)",
-                      color: kPrimaryColor, // গ্রিন বাটন যাতে নজরে পড়ে
-                      onPressed: _handleUpgrade,
-                    ),
-                  ] else ...[
-                    HackerButton(
-                      text: "VIEW ACCESS KEYS",
-                      color: kBlueButtonColor,
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("KEY: ADMIN_X_999")),
-                        );
-                      },
-                    ),
-                  ],
-
-                  const SizedBox(height: 15),
-
-                  // --- LOGOUT BUTTON ---
-                  HackerButton(
-                    text: "DISCONNECT SYSTEM",
-                    color: Colors.red[900]!, // ডার্ক রেড বাটন
-                    onPressed: _handleLogout,
-                  ),
-
-                  const SizedBox(height: 20),
-                  const Text(
-                    "SESSION ID: 8X99-AF22",
-                    style: TextStyle(color: Colors.white10, fontSize: 10),
+                  _buildRow("IDENTITY", username),
+                  const Divider(color: Colors.white10),
+                  _buildRow("EMAIL", email),
+                  const Divider(color: Colors.white10),
+                  _buildRow("ESTABLISHED", joinDate),
+                  const Divider(color: Colors.white10),
+                  // নতুন প্ল্যান ইনফো
+                  _buildRow("CURRENT PLAN", isVip ? planType : "Free Tier"),
+                  const Divider(color: Colors.white10),
+                  _buildRow(
+                    "ACCESS LEVEL",
+                    isVip ? "ADMIN (VIP)" : "RESTRICTED",
                   ),
                 ],
               ),
             ),
+
+            const SizedBox(height: 30),
+
+            // --- MAIN ACTION BUTTON ---
+            if (!isVip) ...[
+              const Text(
+                "UPGRADE REQUIRED FOR FULL ACCESS",
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontSize: 10,
+                  fontFamily: 'Courier',
+                ),
+              ),
+              const SizedBox(height: 8),
+              HackerButton(
+                text: "UNLOCK PREMIUM (PACKAGES)", // টেক্সট পরিবর্তন
+                color: kPrimaryColor,
+                onPressed: _navigateToSubscription, // নতুন ফাংশন কল
+              ),
+            ] else ...[
+              HackerButton(
+                text: "VIEW ACCESS KEYS",
+                color: kBlueButtonColor,
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("KEY: ADMIN_X_999")),
+                  );
+                },
+              ),
+            ],
+
+            const SizedBox(height: 15),
+
+            // --- LOGOUT BUTTON ---
+            HackerButton(
+              text: "DISCONNECT SYSTEM",
+              color: Colors.red[900]!,
+              onPressed: _handleLogout,
+            ),
+
+            const SizedBox(height: 20),
+            const Text(
+              "SESSION ID: 8X99-AF22",
+              style: TextStyle(color: Colors.white10, fontSize: 10),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
-  // Avatar Widget আলাদা করা হলো কোড ক্লিন রাখার জন্য
   Widget _buildAvatarSection(Color color, bool isVip) {
     return Center(
       child: Stack(
@@ -263,7 +263,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // Row Widget ক্লিন করা হলো
   Widget _buildRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),

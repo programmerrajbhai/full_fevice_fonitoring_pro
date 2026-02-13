@@ -120,6 +120,35 @@ class ApiService {
     }
   }
 
+  // --- 6. SUBMIT MANUAL PAYMENT ---
+  static Future<Map<String, dynamic>> submitPayment({
+    required String method,
+    required String amount,
+    required String trxInfo,
+    required String plan,
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getInt('user_id');
+
+      final response = await http.post(
+        Uri.parse("$baseUrl/submit_payment.php"), // ফাইলের নাম চেঞ্জ হয়েছে
+        body: jsonEncode({
+          "user_id": userId,
+          "payment_method": method,
+          "amount": amount,
+          "transaction_info": trxInfo,
+          "plan_selected": plan
+        }),
+        headers: {"Content-Type": "application/json"},
+      );
+
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {"success": false, "message": "Connection Error"};
+    }
+  }
+
 
 
 

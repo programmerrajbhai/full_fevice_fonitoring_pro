@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // প্রিফারেন্স চেক করার জন্য
 import '../constants.dart';
 import 'dashboard_screen.dart';
 import 'profile_screen.dart';
@@ -11,10 +12,22 @@ class MainLayout extends StatefulWidget {
 }
 
 class _MainLayoutState extends State<MainLayout> {
-  int _currentIndex = 0; // 0 = Home, 1 = Profile
-
-  // সাবস্ক্রিপশন স্টেট এখানে ম্যানেজ করা হচ্ছে যাতে দুই পেজেই এফেক্ট পড়ে
+  int _currentIndex = 0;
   bool isPremiumUser = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserStatus();
+  }
+
+  // ইউজার স্ট্যাটাস লোড করা
+  void _loadUserStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      isPremiumUser = prefs.getBool('is_subscribed') ?? false;
+    });
+  }
 
   void _onItemTapped(int index) {
     setState(() {
@@ -22,7 +35,6 @@ class _MainLayoutState extends State<MainLayout> {
     });
   }
 
-  // সাবস্ক্রিপশন আপডেট করার ফাংশন
   void _updateSubscriptionStatus(bool status) {
     setState(() {
       isPremiumUser = status;
@@ -31,7 +43,6 @@ class _MainLayoutState extends State<MainLayout> {
 
   @override
   Widget build(BuildContext context) {
-    // স্ক্রিন লিস্ট (Subscription Status পাস করা হচ্ছে)
     final List<Widget> screens = [
       DashboardScreen(isPremium: isPremiumUser),
       ProfileScreen(isPremium: isPremiumUser, onUpgrade: () => _updateSubscriptionStatus(true)),
@@ -39,15 +50,11 @@ class _MainLayoutState extends State<MainLayout> {
 
     return Scaffold(
       backgroundColor: Colors.black,
-
-      // বডি (ড্যাশবোর্ড বা প্রোফাইল)
       body: screens[_currentIndex],
-
-      // --- HACKER STYLE BOTTOM NAVIGATION BAR ---
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Colors.black,
-          border: const Border(top: BorderSide(color: kPrimaryColor, width: 2)), // উপরের নিয়ন বর্ডার
+          border: const Border(top: BorderSide(color: kPrimaryColor, width: 2)),
           boxShadow: [
             BoxShadow(color: kPrimaryColor.withOpacity(0.3), blurRadius: 15, spreadRadius: 1)
           ],
@@ -64,11 +71,11 @@ class _MainLayoutState extends State<MainLayout> {
           items: const [
             BottomNavigationBarItem(
               icon: Icon(Icons.dashboard_customize),
-              label: 'Home', // Home
+              label: 'TERMINAL',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.shield_moon),
-              label: 'Profile', // Profile
+              label: 'IDENTITY',
             ),
           ],
         ),

@@ -1,43 +1,45 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../constants.dart';
 import '../widgets/hacker_drawer.dart';
 import '../widgets/hacker_input.dart';
 import '../widgets/hacker_button.dart';
+import '../services/api_service.dart';
 import 'subscription_screen.dart';
+import 'login_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key,  bool? isPremium});
+  final bool? isPremium;
+  const DashboardScreen({super.key, this.isPremium});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen>
-    with SingleTickerProviderStateMixin {
-  bool isSubscribed = false;
+class _DashboardScreenState extends State<DashboardScreen> {
   final TextEditingController keyController = TextEditingController();
-
-  // Terminal Typing Effect Variables
+  String? serverSecretKey;
   String statusText = "SYSTEM: ONLINE... WAITING FOR TARGET...";
   Timer? _timer;
 
   @override
   void initState() {
     super.initState();
-    // Random Status Update for Hacker Vibe
     _timer = Timer.periodic(const Duration(seconds: 3), (timer) {
-      setState(() {
-        List<String> logs = [
-          "SCANNING PORTS...",
-          "ENCRYPTING CONNECTION...",
-          "IP MASKED: 192.168.X.X",
-          "SYSTEM SECURE...",
-          "WAITING FOR INPUT...",
-        ];
-        statusText = logs[Random().nextInt(logs.length)];
-      });
+      if (mounted) {
+        setState(() {
+          List<String> logs = [
+            "SCANNING PORTS...",
+            "ENCRYPTING CONNECTION...",
+            "IP MASKED: 192.168.X.X",
+            "SYSTEM SECURE...",
+            "WAITING FOR INPUT...",
+          ];
+          statusText = logs[Random().nextInt(logs.length)];
+        });
+      }
     });
   }
 
@@ -47,119 +49,286 @@ class _DashboardScreenState extends State<DashboardScreen>
     super.dispose();
   }
 
-  // --- LOGIC METHODS ---
+  void _handleAction() async {
+    final prefs = await SharedPreferences.getInstance();
+    final bool isLoggedIn = prefs.getBool('is_logged_in') ?? false;
+
+    // নোট: আমরা এখানে 'isPremium' চেক করছি না, কারণ ইউজার 'Verify' বাটনে ক্লিক করে
+    // ডাটাবেস থেকে টোকেন চেক করবে যে তার এপ্রুভাল হয়েছে কিনা।
+    if (!isLoggedIn) {
+      _showLoginRequiredDialog();
+    } else {
+      _showVerificationDialog();
+    }
+  }
 
   void _showVerificationDialog() {
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (context) {
-        return AlertDialog(
-          backgroundColor: Colors.black,
-          shape: Border.all(color: kPrimaryColor, width: 2),
-          title: const Row(
-            children: [
-              Icon(Icons.warning_amber_rounded, color: kPrimaryColor),
-              SizedBox(width: 10),
-              Text(
-                "SECURITY_PROTOCOL",
-                style: TextStyle(
-                  color: kPrimaryColor,
-                  fontFamily: 'Courier',
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                "> ENTER ACCESS KEY TO PROCEED...",
-                style: TextStyle(color: Colors.white, fontFamily: 'Courier'),
-              ),
-              const SizedBox(height: 15),
-              if (isSubscribed)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: kPrimaryColor.withOpacity(0.1),
-                    border: Border.all(color: kPrimaryColor),
+        bool isDecrypting = false;
+        bool keyFound = false;
+        String displayMessage = "";
+
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            // --- SERVER TOKEN FETCH LOGIC ---
+            Future<void> fetchKeyFromDatabase() async {
+              setDialogState(() {
+                isDecrypting = true;
+                displayMessage = "";
+              });
+
+              // সার্ভারে কল করা হচ্ছে (get_data.php)
+              final result = await ApiService.getData();
+
+              await Future.delayed(
+                const Duration(seconds: 3),
+              ); // Hacker Animation Delay
+
+              if (mounted) {
+                setDialogState(() {
+                  isDecrypting = false;
+
+                  if (result['success'] == true) {
+                    if (result['secret_key'] != null) {
+                      // ১. টোকেন পাওয়া গেছে (Approved)
+                      serverSecretKey = result['secret_key'];
+                      keyFound = true;
+                      keyController.text = serverSecretKey!;
+                    } else if (result['message'] == "Approval Pending") {
+                      // ২. রিকোয়েস্ট পেন্ডিং
+                      displayMessage =
+                          "STATUS: PENDING APPROVAL (Wait for Admin)";
+                    } else {
+                      // ৩. সাবস্ক্রিপশন নেই
+                      displayMessage = "ACCESS DENIED: Subscription Required";
+                    }
+                  } else {
+                    displayMessage = "CONNECTION ERROR: Server Unreachable";
+                  }
+                });
+              }
+            }
+
+            return AlertDialog(
+              backgroundColor: Colors.black,
+              shape: Border.all(color: kPrimaryColor, width: 2),
+              title: const Row(
+                children: [
+                  Icon(Icons.vpn_key, color: kPrimaryColor),
+                  SizedBox(width: 10),
+                  Text(
+                    "SECURE ACCESS",
+                    style: TextStyle(
+                      color: kPrimaryColor,
+                      fontFamily: 'Courier',
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                  child: Column(
-                    children: [
-                      const Text(
-                        "SUBSCRIPTION: ACTIVE",
-                        style: TextStyle(
-                          color: kPrimaryColor,
-                          fontSize: 10,
-                          fontFamily: 'Courier',
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "> AUTHENTICATION REQUIRED",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontFamily: 'Courier',
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  const Text(
+                    "Retrieve Access Token from Secure Database.",
+                    style: TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
+                  const SizedBox(height: 20),
+
+                  if (isDecrypting) ...[
+                    const Text(
+                      "CONNECTING TO ENCRYPTED SERVER...",
+                      style: TextStyle(
+                        color: kPrimaryColor,
+                        fontSize: 10,
+                        fontFamily: 'Courier',
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    const LinearProgressIndicator(
+                      backgroundColor: Colors.white10,
+                      color: kPrimaryColor,
+                    ),
+                  ] else if (keyFound) ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: kPrimaryColor.withOpacity(0.1),
+                        border: Border.all(color: kPrimaryColor),
+                      ),
+                      child: Column(
+                        children: [
+                          const Text(
+                            "TOKEN DECRYPTED SUCCESSFULLY",
+                            style: TextStyle(
+                              color: kPrimaryColor,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            serverSecretKey ?? "Unknown",
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontFamily: 'Courier',
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ] else ...[
+                    // টোকেন ফেচ বাটন
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        icon: const Icon(
+                          Icons.cloud_download,
+                          color: Colors.amber,
+                        ),
+                        label: const Text(
+                          "GET TOKEN (DATABASE)",
+                          style: TextStyle(
+                            color: Colors.amber,
+                            fontFamily: 'Courier',
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Colors.amber),
+                          padding: const EdgeInsets.symmetric(vertical: 15),
+                        ),
+                        onPressed: fetchKeyFromDatabase,
+                      ),
+                    ),
+                    if (displayMessage.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 10),
+                        child: Center(
+                          child: Text(
+                            displayMessage,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: displayMessage.contains("PENDING")
+                                  ? Colors.amber
+                                  : Colors.red,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: 'Courier',
+                            ),
+                          ),
                         ),
                       ),
-                      Text(
-                        "KEY: $kAdminKey",
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontFamily: 'Courier',
-                          fontSize: 18,
+
+                    // যদি অ্যাক্সেস ডিনাইড হয়, সাবস্ক্রিপশন বাটন দেখাও
+                    if (displayMessage.contains("Required"))
+                      Padding(
+                        padding: const EdgeInsets.only(top: 10),
+                        child: HackerButton(
+                          text: "BUY SUBSCRIPTION",
+                          color: Colors.red,
+                          onPressed: () {
+                            Navigator.pop(context);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const SubscriptionScreen(),
+                              ),
+                            );
+                          },
                         ),
                       ),
-                    ],
+                  ],
+
+                  const SizedBox(height: 20),
+                  HackerInput(
+                    hintText: "Enter Token",
+                    controller: keyController,
+                    icon: Icons.password,
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    keyController.clear();
+                  },
+                  child: const Text(
+                    "CLOSE",
+                    style: TextStyle(color: Colors.grey),
                   ),
                 ),
-              const SizedBox(height: 15),
-              HackerInput(
-                hintText: "Enter Key Here",
-                controller: keyController,
-                icon: Icons.vpn_key,
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text(
-                "ABORT",
-                style: TextStyle(color: Colors.red, fontFamily: 'Courier'),
-              ),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor),
-              onPressed: () {
-                Navigator.pop(context);
-                _checkKey(keyController.text);
-              },
-              child: const Text(
-                "VERIFY",
-                style: TextStyle(
-                  color: Colors.black,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: 'Courier',
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: kPrimaryColor,
+                  ),
+                  onPressed: () {
+                    if (keyController.text.isEmpty) return;
+                    Navigator.pop(context);
+                    _verifyToken(keyController.text);
+                  },
+                  child: const Text(
+                    "VERIFY",
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          ],
+              ],
+            );
+          },
         );
       },
     );
   }
 
-  void _checkKey(String inputKey) {
-    if (inputKey == kAdminKey) {
+  void _verifyToken(String inputKey) {
+    // সার্ভার থেকে কি না আসলে ডিফল্ট কি (fallback)
+    String validKey = serverSecretKey ?? kAdminKey;
+
+    if (inputKey == validKey) {
       showDialog(
         context: context,
         builder: (_) => AlertDialog(
           backgroundColor: Colors.black,
           shape: Border.all(color: kPrimaryColor),
-          title: const Text(
-            "ACCESS GRANTED",
-            style: TextStyle(color: kPrimaryColor, fontFamily: 'Courier'),
-          ),
-          content: const Text(
-            "> SMS Alert: TARGET LOCKED.\n> Request sent successfully!",
-            style: TextStyle(color: Colors.white, fontFamily: 'Courier'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.check_circle, color: kPrimaryColor, size: 60),
+              const SizedBox(height: 10),
+              const Text(
+                "ACCESS GRANTED",
+                style: TextStyle(
+                  color: kPrimaryColor,
+                  fontSize: 20,
+                  fontFamily: 'Courier',
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                "> Connection Established.\n> Target Device Monitoring Started.",
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white),
+              ),
+            ],
           ),
         ),
       );
@@ -169,43 +338,67 @@ class _DashboardScreenState extends State<DashboardScreen>
         builder: (_) => AlertDialog(
           backgroundColor: Colors.black,
           shape: Border.all(color: Colors.red),
-          title: const Text(
-            "ACCESS DENIED",
-            style: TextStyle(color: Colors.red, fontFamily: 'Courier'),
-          ),
-          content: const Text(
-            "> Invalid Key.\n> Purchase subscription to bypass security.",
-            style: TextStyle(color: Colors.white, fontFamily: 'Courier'),
-          ),
-          actions: [
-            TextButton(
-              child: const Text(
-                "GET ACCESS",
-                style: TextStyle(color: Colors.yellow, fontFamily: 'Courier'),
+          content: const Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.error, color: Colors.red, size: 60),
+              SizedBox(height: 10),
+              Text(
+                "ACCESS DENIED",
+                style: TextStyle(
+                  color: Colors.red,
+                  fontSize: 20,
+                  fontFamily: 'Courier',
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-              onPressed: () async {
-                Navigator.pop(context);
-                final result = await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const SubscriptionScreen(),
-                  ),
-                );
-                if (result == true) {
-                  setState(() => isSubscribed = true);
-                }
-              },
-            ),
-          ],
+              SizedBox(height: 10),
+              Text(
+                "> Invalid Token.\n> System Lockdown Initiated.",
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white),
+              ),
+            ],
+          ),
         ),
       );
     }
   }
 
+  void _showLoginRequiredDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.black,
+        shape: Border.all(color: Colors.red),
+        title: const Text(
+          "IDENTITY REQUIRED",
+          style: TextStyle(color: Colors.red, fontFamily: 'Courier'),
+        ),
+        content: const Text(
+          "System requires valid login session.",
+          style: TextStyle(color: Colors.white),
+        ),
+        actions: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const LoginScreen()),
+              );
+            },
+            child: const Text("LOGIN", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // --- এই লাইনটি যুক্ত করুন ---
       drawer: const HackerDrawer(),
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -223,26 +416,13 @@ class _DashboardScreenState extends State<DashboardScreen>
           child: Container(color: kPrimaryColor, height: 1.0),
         ),
         iconTheme: const IconThemeData(color: kPrimaryColor),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.wifi, color: kPrimaryColor),
-            onPressed: () {},
-          ),
-          const SizedBox(width: 10),
-        ],
       ),
-
       body: Stack(
         children: [
-          // 1. Background Grid Effect (Matrix Style)
           Container(
-            width: double.infinity,
-            height: double.infinity,
             decoration: BoxDecoration(
               image: DecorationImage(
-                image: const AssetImage(
-                  "assets/images/images2.jpg",
-                ), // Optional: Add a subtle GIF if you want, or keep it black
+                image: const AssetImage("assets/images/images2.jpg"),
                 colorFilter: ColorFilter.mode(
                   Colors.black.withOpacity(0.9),
                   BlendMode.darken,
@@ -257,14 +437,11 @@ class _DashboardScreenState extends State<DashboardScreen>
               subdivisions: 1,
             ),
           ),
-
-          // 2. Main Content
           SingleChildScrollView(
             padding: const EdgeInsets.all(16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // --- TERMINAL STATUS HEADER ---
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
@@ -294,33 +471,10 @@ class _DashboardScreenState extends State<DashboardScreen>
                   ),
                 ),
                 const SizedBox(height: 20),
-
-                // --- HACKER LOGO ---
-                Center(
-                  child: Container(
-                    height: 100,
-                    width: 100,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: kPrimaryColor, width: 2),
-                      boxShadow: [
-                        BoxShadow(
-                          color: kPrimaryColor.withOpacity(0.5),
-                          blurRadius: 20,
-                          spreadRadius: 2,
-                        ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.bug_report,
-                      size: 50,
-                      color: kPrimaryColor,
-                    ),
-                  ),
+                const Center(
+                  child: Icon(Icons.bug_report, size: 80, color: kPrimaryColor),
                 ),
                 const SizedBox(height: 30),
-
-                // --- SECTION 1: TARGET DEVICE ---
                 _buildHackerSection(
                   title: "TARGET_CONNECTION",
                   color: kPrimaryColor,
@@ -332,38 +486,21 @@ class _DashboardScreenState extends State<DashboardScreen>
                         keyboardType: TextInputType.phone,
                         icon: Icons.phone_android,
                       ),
-                      const SizedBox(height: 5),
-                      const Text(
-                        "> Establish connection via Google Login spoofing...",
-                        style: TextStyle(
-                          color: Colors.grey,
-                          fontSize: 10,
-                          fontFamily: 'Courier',
-                        ),
-                      ),
                       const SizedBox(height: 10),
                       HackerButton(
                         text: "INITIATE_CONNECT()",
                         color: kRedButtonColor,
-                        onPressed: _showVerificationDialog,
+                        onPressed: _handleAction,
                       ),
                     ],
                   ),
                 ),
-
                 const SizedBox(height: 20),
-
-                // --- SECTION 2: FACEBOOK ATTACK ---
                 _buildHackerSection(
                   title: "FB_ID_INJECTION",
                   color: kBlueButtonColor,
                   child: Column(
                     children: [
-                      const Text(
-                        "ফেসবুক আইডি বা পেজ লিংক দিন",
-                        style: TextStyle(color: Colors.white70, fontSize: 12),
-                      ),
-                      const SizedBox(height: 5),
                       const HackerInput(
                         hintText: "https://facebook.com/target_id",
                         icon: Icons.link,
@@ -372,56 +509,19 @@ class _DashboardScreenState extends State<DashboardScreen>
                       HackerButton(
                         text: "EXECUTE_HACK()",
                         color: kBlueButtonColor,
-                        onPressed: _showVerificationDialog,
+                        onPressed: _handleAction,
                       ),
                     ],
                   ),
                 ),
-
                 const SizedBox(height: 20),
-
-                // --- SECTION 3: DISABLE ---
-                _buildHackerSection(
-                  title: "ACCOUNT_TERMINATION",
-                  color: const Color(0xFFD32F2F),
-                  child: Column(
-                    children: [
-                      const Text(
-                        "Facebook Disable Request",
-                        style: TextStyle(color: Colors.white70, fontSize: 12),
-                      ),
-                      const SizedBox(height: 5),
-                      const HackerInput(
-                        hintText: "Disable Link / Evidence",
-                        icon: Icons.block,
-                      ),
-                      const SizedBox(height: 10),
-                      HackerButton(
-                        text: "DESTROY_ACCOUNT()",
-                        color: const Color(0xFFD32F2F),
-                        onPressed: _showVerificationDialog,
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                // --- FOOTER INFO ---
-                Container(
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  alignment: Alignment.center,
-                  decoration: const BoxDecoration(
-                    border: Border(top: BorderSide(color: Colors.white24)),
-                  ),
-                  child: const Text(
-                    "DEVICE LIMIT: 100/150 USED\n[||||||||||||||------]",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.greenAccent,
-                      fontFamily: 'Courier',
-                      fontSize: 12,
-                    ),
+                const Text(
+                  "DEVICE LIMIT: 100/150 USED\n[||||||||||||||------]",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.greenAccent,
+                    fontFamily: 'Courier',
+                    fontSize: 12,
                   ),
                 ),
               ],
@@ -432,7 +532,6 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  // কাস্টম হ্যাকার বক্স ডিজাইন (Container Widget)
   Widget _buildHackerSection({
     required String title,
     required Color color,
@@ -442,35 +541,20 @@ class _DashboardScreenState extends State<DashboardScreen>
       decoration: BoxDecoration(
         color: Colors.black.withOpacity(0.7),
         border: Border.all(color: color.withOpacity(0.5)),
-        boxShadow: [
-          BoxShadow(
-            color: color.withOpacity(0.1),
-            blurRadius: 10,
-            spreadRadius: 0,
-          ),
-        ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Section Header
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             color: color.withOpacity(0.2),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  "[$title]",
-                  style: TextStyle(
-                    color: color,
-                    fontFamily: 'Courier',
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Icon(Icons.lock_open, color: color, size: 14),
-              ],
+            child: Text(
+              "[$title]",
+              style: TextStyle(
+                color: color,
+                fontFamily: 'Courier',
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
           Padding(padding: const EdgeInsets.all(12.0), child: child),
