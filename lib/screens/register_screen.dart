@@ -18,23 +18,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool isLoading = false;
 
   void _handleRegister() async {
-    if (userController.text.isEmpty || emailController.text.isEmpty || passController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("All fields are required!")));
+    if (userController.text.trim().isEmpty || emailController.text.trim().isEmpty || passController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("All fields are required!"), backgroundColor: Colors.orange)
+      );
       return;
     }
 
     setState(() => isLoading = true);
 
     final result = await ApiService.register(
-        userController.text,
-        emailController.text,
-        passController.text
+        userController.text.trim(),
+        emailController.text.trim(),
+        passController.text.trim()
     );
 
+    if (!mounted) return;
     setState(() => isLoading = false);
 
-    if (result['success']) {
-      // সফল হলে ডায়লগ দেখিয়ে লগইন পেজে পাঠাবে
+    if (result['success'] == true) {
       showDialog(
         context: context,
         builder: (_) => AlertDialog(
@@ -44,9 +46,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
           content: const Text("Identity Created. Please Login.", style: TextStyle(color: Colors.white)),
           actions: [
             TextButton(
-              child: const Text("GO TO LOGIN"),
+              child: const Text("GO TO LOGIN", style: TextStyle(color: kPrimaryColor)),
               onPressed: () {
-                Navigator.pop(context); // ডায়লগ বন্ধ
+                Navigator.pop(context); // ডায়লগ বন্ধ
                 Navigator.pop(context); // লগইন পেজে ফেরত
               },
             )
@@ -55,7 +57,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result['message']), backgroundColor: Colors.red),
+        SnackBar(content: Text(result['message'] ?? "Registration Failed"), backgroundColor: Colors.red),
       );
     }
   }
@@ -63,10 +65,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kBackgroundColor,
+      backgroundColor: Colors.black,
       appBar: AppBar(
         title: const Text("NEW IDENTITY", style: TextStyle(fontFamily: 'Courier', color: kPrimaryColor)),
-        backgroundColor: kBackgroundColor,
+        backgroundColor: Colors.black,
         iconTheme: const IconThemeData(color: kPrimaryColor),
       ),
       body: Center(

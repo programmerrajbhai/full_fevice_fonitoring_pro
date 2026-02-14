@@ -51,7 +51,7 @@ class _HackerDrawerState extends State<HackerDrawer> {
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
-              await ApiService.logout();
+             // await ApiService.logout();
               if (mounted) {
                 Navigator.pushAndRemoveUntil(
                   context,

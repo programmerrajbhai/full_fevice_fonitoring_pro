@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../constants.dart';
 import '../widgets/hacker_input.dart';
 import '../widgets/hacker_button.dart';
-import '../services/api_service.dart'; // সার্ভিস ইম্পোর্ট
+import '../services/api_service.dart';
 import 'main_layout.dart';
 import 'register_screen.dart';
 
@@ -16,25 +16,31 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passController = TextEditingController();
-  bool isLoading = false; // লোডিং দেখানোর জন্য
+  bool isLoading = false;
 
   void _handleLogin() async {
-    if (emailController.text.isEmpty || passController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please fill all fields")));
+    // ইমেইল বা পাসওয়ার্ড খালি থাকলে চেক
+    if (emailController.text.trim().isEmpty || passController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please fill all fields"), backgroundColor: Colors.orange),
+      );
       return;
     }
 
-    setState(() => isLoading = true); // লোডিং শুরু
+    setState(() => isLoading = true);
 
-    final result = await ApiService.login(emailController.text, passController.text);
+    final result = await ApiService.login(emailController.text.trim(), passController.text.trim());
 
-    setState(() => isLoading = false); // লোডিং শেষ
+    if (!mounted) return; // ⚠️ স্ক্রিন পরিবর্তন হয়ে গেলে যাতে এরর না দেয়
+    setState(() => isLoading = false);
 
-    if (result['success']) {
-      // লগইন সফল
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MainLayout()));
+    if (result['success'] == true) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const MainLayout()),
+            (route) => false,
+      );
     } else {
-      // লগইন ব্যর্থ
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(result['message'] ?? "Login Failed"), backgroundColor: Colors.red),
       );
@@ -44,7 +50,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kBackgroundColor,
+      backgroundColor: Colors.black, // kBackgroundColor যদি না থাকে, ব্ল্যাক সেইফ
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20.0),
