@@ -6,10 +6,12 @@ import 'package:flutter/foundation.dart'; // For debugPrint
 class ApiService {
   static const String baseUrl = "https://publishuapp.com/hacker_api/api";
 
+
+
   // --- 1. REGISTER USER ---
   static Future<Map<String, dynamic>> register(String username, String email, String password) async {
     try {
-      debugPrint("Registering: $username, $email"); // Debug Log
+      debugPrint("Registering: $username, $email");
 
       final response = await http.post(
         Uri.parse("$baseUrl/register.php"),
@@ -18,18 +20,28 @@ class ApiService {
           "email": email,
           "password": password,
         }),
-        headers: {"Content-Type": "application/json"},
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json", // ⚠️ নতুন হেডার যুক্ত করা হলো
+        },
       );
 
-      debugPrint("Register Response: ${response.body}"); // Server response check
+      debugPrint("Register API Status: ${response.statusCode}");
+      debugPrint("Register API Body: '${response.body}'"); // ⚠️ Body এর আগে-পিছে কিছু আছে কিনা দেখতে
 
       if (response.statusCode == 200) {
-        return jsonDecode(response.body);
+        // ⚠️ Safe JSON Decoding (যাতে Exception না আসে)
+        try {
+          return jsonDecode(response.body);
+        } catch (e) {
+          debugPrint("JSON Decode Error in Register: $e");
+          return {"success": false, "message": "API Response Format Error. Check backend."};
+        }
       } else {
         return {"success": false, "message": "Server Error: ${response.statusCode}"};
       }
     } catch (e) {
-      debugPrint("Register Error: $e");
+      debugPrint("Register Exception: $e");
       return {"success": false, "message": "Connection Error: $e"};
     }
   }
@@ -45,18 +57,28 @@ class ApiService {
           "email": email,
           "password": password,
         }),
-        headers: {"Content-Type": "application/json"},
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json", // ⚠️ নতুন হেডার যুক্ত করা হলো
+        },
       );
 
-      debugPrint("Login Response: ${response.body}");
+      debugPrint("Login API Status: ${response.statusCode}");
+      debugPrint("Login API Body: '${response.body}'"); // ⚠️ Body এর আগে-পিছে কিছু আছে কিনা দেখতে
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+        // ⚠️ Safe JSON Decoding
+        Map<String, dynamic> data;
+        try {
+          data = jsonDecode(response.body);
+        } catch (e) {
+          debugPrint("JSON Decode Error in Login: $e");
+          return {"success": false, "message": "API Response Format Error. Server returning HTML or Spaces."};
+        }
 
         if (data['success'] == true) {
           final prefs = await SharedPreferences.getInstance();
 
-          // ⚠️ FIX: user_id স্ট্রিং বা ইনট যাই আসুক, হ্যান্ডেল করা হবে
           var userId = data['user_id'];
           if (userId is String) {
             await prefs.setInt('user_id', int.tryParse(userId) ?? 0);
@@ -66,7 +88,6 @@ class ApiService {
 
           await prefs.setString('username', data['username']);
 
-          // ⚠️ FIX: is_subscribed হ্যান্ডলিং
           var isSub = data['is_subscribed'];
           bool subStatus = false;
           if (isSub is bool) subStatus = isSub;
@@ -80,11 +101,12 @@ class ApiService {
         return {"success": false, "message": "Server Error: ${response.statusCode}"};
       }
     } catch (e) {
-      debugPrint("Login Error: $e");
+      debugPrint("Login Exception: $e");
       return {"success": false, "message": "Connection Error: $e"};
     }
   }
 
+  // ... (বাকি ফাংশনগুলো আগের মতোই থাকবে, তবে সেগুলোতেও "Accept": "application/json" হেডার দিতে পারেন)
   // --- 3. GET DATA ---
   static Future<Map<String, dynamic>> getData() async {
     try {
