@@ -4,11 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
   // ⚠️ Emulator ব্যবহার করলে: "http://10.0.2.2/hacker_api/api"
-  // ⚠️ Real Device ব্যবহার করলে: "http://YOUR_PC_IP_ADDRESS/hacker_api/api"
-  statGot dependencies!
-  6 packages have newer versions incompatible with dependency constraints.
-  Try `flutter pub outdated` for more information.
-  Running Gradle task 'assembleRelease'...      ic const String baseUrl = "https://8289-103-190-205-159.ngrok-free.app/hacker_api/api";
+  static const String baseUrl = "https://8289-103-190-205-159.ngrok-free.app/hacker_api/api";
 //https://8289-103-190-205-159.ngrok-free.app/hacker_api/api/
   // --- 1. REGISTER USER ---
   static Future<Map<String, dynamic>> register(String username, String email, String password) async {
