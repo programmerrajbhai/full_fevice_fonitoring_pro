@@ -6,10 +6,12 @@ import 'package:flutter/foundation.dart'; // For debugPrint
 class ApiService {
   static const String baseUrl = "https://publishuapp.com/hacker_api/api";
 
-
-
   // --- 1. REGISTER USER ---
-  static Future<Map<String, dynamic>> register(String username, String email, String password) async {
+  static Future<Map<String, dynamic>> register(
+    String username,
+    String email,
+    String password,
+  ) async {
     try {
       debugPrint("Registering: $username, $email");
 
@@ -27,7 +29,9 @@ class ApiService {
       );
 
       debugPrint("Register API Status: ${response.statusCode}");
-      debugPrint("Register API Body: '${response.body}'"); // ⚠️ Body এর আগে-পিছে কিছু আছে কিনা দেখতে
+      debugPrint(
+        "Register API Body: '${response.body}'",
+      ); // ⚠️ Body এর আগে-পিছে কিছু আছে কিনা দেখতে
 
       if (response.statusCode == 200) {
         // ⚠️ Safe JSON Decoding (যাতে Exception না আসে)
@@ -35,10 +39,16 @@ class ApiService {
           return jsonDecode(response.body);
         } catch (e) {
           debugPrint("JSON Decode Error in Register: $e");
-          return {"success": false, "message": "API Response Format Error. Check backend."};
+          return {
+            "success": false,
+            "message": "API Response Format Error. Check backend.",
+          };
         }
       } else {
-        return {"success": false, "message": "Server Error: ${response.statusCode}"};
+        return {
+          "success": false,
+          "message": "Server Error: ${response.statusCode}",
+        };
       }
     } catch (e) {
       debugPrint("Register Exception: $e");
@@ -47,16 +57,16 @@ class ApiService {
   }
 
   // --- 2. LOGIN USER ---
-  static Future<Map<String, dynamic>> login(String email, String password) async {
+  static Future<Map<String, dynamic>> login(
+    String email,
+    String password,
+  ) async {
     try {
       debugPrint("Logging in: $email");
 
       final response = await http.post(
         Uri.parse("$baseUrl/login.php"),
-        body: jsonEncode({
-          "email": email,
-          "password": password,
-        }),
+        body: jsonEncode({"email": email, "password": password}),
         headers: {
           "Content-Type": "application/json",
           "Accept": "application/json", // ⚠️ নতুন হেডার যুক্ত করা হলো
@@ -64,7 +74,9 @@ class ApiService {
       );
 
       debugPrint("Login API Status: ${response.statusCode}");
-      debugPrint("Login API Body: '${response.body}'"); // ⚠️ Body এর আগে-পিছে কিছু আছে কিনা দেখতে
+      debugPrint(
+        "Login API Body: '${response.body}'",
+      ); // ⚠️ Body এর আগে-পিছে কিছু আছে কিনা দেখতে
 
       if (response.statusCode == 200) {
         // ⚠️ Safe JSON Decoding
@@ -73,7 +85,11 @@ class ApiService {
           data = jsonDecode(response.body);
         } catch (e) {
           debugPrint("JSON Decode Error in Login: $e");
-          return {"success": false, "message": "API Response Format Error. Server returning HTML or Spaces."};
+          return {
+            "success": false,
+            "message":
+                "API Response Format Error. Server returning HTML or Spaces.",
+          };
         }
 
         if (data['success'] == true) {
@@ -98,7 +114,10 @@ class ApiService {
         }
         return data;
       } else {
-        return {"success": false, "message": "Server Error: ${response.statusCode}"};
+        return {
+          "success": false,
+          "message": "Server Error: ${response.statusCode}",
+        };
       }
     } catch (e) {
       debugPrint("Login Exception: $e");
@@ -177,7 +196,7 @@ class ApiService {
           "payment_method": method,
           "amount": amount,
           "transaction_info": trxInfo,
-          "plan_selected": plan
+          "plan_selected": plan,
         }),
         headers: {"Content-Type": "application/json"},
       );
