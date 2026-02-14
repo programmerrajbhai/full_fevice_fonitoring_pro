@@ -3,9 +3,9 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  // ⚠️ Emulator ব্যবহার করলে: "http://10.0.2.2/hacker_api/api"
+  // ⚠️ FIX: 'static const' যোগ করা হয়েছে
   static const String baseUrl = "https://8289-103-190-205-159.ngrok-free.app/hacker_api/api";
-//https://8289-103-190-205-159.ngrok-free.app/hacker_api/api/
+
   // --- 1. REGISTER USER ---
   static Future<Map<String, dynamic>> register(String username, String email, String password) async {
     try {
@@ -38,12 +38,11 @@ class ApiService {
 
       final data = jsonDecode(response.body);
 
-      // যদি লগইন সফল হয়, ডাটা সেভ করে রাখব
       if (data['success'] == true) {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setInt('user_id', data['user_id']);
         await prefs.setString('username', data['username']);
-        await prefs.setBool('is_subscribed', data['is_subscribed']);
+        await prefs.setBool('is_subscribed', data['is_subscribed'] ?? false);
         await prefs.setBool('is_logged_in', true);
       }
       return data;
@@ -75,11 +74,8 @@ class ApiService {
   // --- LOGOUT ---
   static Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.clear(); // সব ডাটা মুছে ফেলবে
+    await prefs.clear();
   }
-
-
-
 
   // --- 4. GET PROFILE DATA ---
   static Future<Map<String, dynamic>> getProfile() async {
@@ -131,7 +127,7 @@ class ApiService {
       final userId = prefs.getInt('user_id');
 
       final response = await http.post(
-        Uri.parse("$baseUrl/submit_payment.php"), // ফাইলের নাম চেঞ্জ হয়েছে
+        Uri.parse("$baseUrl/submit_payment.php"),
         body: jsonEncode({
           "user_id": userId,
           "payment_method": method,
@@ -147,8 +143,4 @@ class ApiService {
       return {"success": false, "message": "Connection Error"};
     }
   }
-
-
-
-
 }
