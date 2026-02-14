@@ -4,13 +4,18 @@ import '../constants.dart';
 
 class HackerLoading extends StatefulWidget {
   final String message;
-  const HackerLoading({super.key, required this.message});
+  const HackerLoading({
+    super.key,
+    required this.message,
+    String? statusText,
+  });
 
   @override
   State<HackerLoading> createState() => _HackerLoadingState();
 }
 
-class _HackerLoadingState extends State<HackerLoading> with SingleTickerProviderStateMixin {
+class _HackerLoadingState extends State<HackerLoading>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
   String _loadingText = "";
@@ -73,7 +78,11 @@ class _HackerLoadingState extends State<HackerLoading> with SingleTickerProvider
             // Rotating/Pulsing Hacker Icon
             ScaleTransition(
               scale: _animation,
-              child: const Icon(Icons.bug_report, size: 60, color: kPrimaryColor),
+              child: const Icon(
+                Icons.bug_report,
+                size: 60,
+                color: kPrimaryColor,
+              ),
             ),
             const SizedBox(height: 20),
 
@@ -98,7 +107,11 @@ class _HackerLoadingState extends State<HackerLoading> with SingleTickerProvider
             const SizedBox(height: 10),
             const Text(
               "ENCRYPTING DATA...",
-              style: TextStyle(color: Colors.grey, fontSize: 10, fontFamily: 'Courier'),
+              style: TextStyle(
+                color: Colors.grey,
+                fontSize: 10,
+                fontFamily: 'Courier',
+              ),
             ),
           ],
         ),

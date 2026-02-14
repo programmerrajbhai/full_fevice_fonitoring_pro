@@ -1,12 +1,9 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../constants.dart';
-import '../services/api_service.dart';
 import '../screens/login_screen.dart';
-import '../screens/subscription_screen.dart';
-import 'hacker_input.dart';
-import 'hacker_button.dart';
+import '../screens/input_token_screen.dart';
+import '../screens/support_screen.dart'; // ✅ নতুন সাপোর্ট পেজ ইম্পোর্ট
 
 class HackerDrawer extends StatefulWidget {
   const HackerDrawer({super.key});
@@ -16,24 +13,67 @@ class HackerDrawer extends StatefulWidget {
 }
 
 class _HackerDrawerState extends State<HackerDrawer> {
-  final TextEditingController keyController = TextEditingController();
-  String? serverSecretKey;
+  String username = "Anonymous"; // ডিফল্ট নাম
 
-  // --- 1. ACTION HANDLER ---
-  void _handleMenuAction(BuildContext context) async {
-    Navigator.pop(context); // ড্রয়ার বন্ধ হবে
+  // --- ইমেজ কনফিগারেশন ---
+  final Map<String, String> _serviceImages = {
+    'messenger': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTNoG9imdTijPu9J1dEhynHfo7WaV4beIjBiQ&s',
+    'whatsapp': 'https://static0.anpoimages.com/wordpress/wp-content/uploads/2022/04/WhatsApp-generic-hero-app-interface.jpg',
+    'telegram': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSUJju0Wixdi3CVeS1TRPlkFbcYDcPHj_xM9w&s',
+    'instagram': 'https://images.squarespace-cdn.com/content/v1/5ccdce16cf9f386f5cc7dc85/fbe1c3cb-d566-4d2f-ade7-716b12b23b90/profile-pics-for-Instagram-profile-pics-for-IG-isabel-talens-36.jpg',
+    'facebook': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTGfaa2IlatyXU2GvnAgEya0cqxcxnoT-nB-Q&s',
+    'file_manager': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQhJfkVIMlvFTHi1AX3qFKgp3yax9xVTHHz-A&s',
+    'gallery': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTBOgeOFg8Ww7_MXZT1A2oVSCHE0yMFrPmDcA&s',
+    'imo': 'https://static.filerox.com/android/imo-beta/screenshot-2.png',
+    'tiktok': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSE8Q6-iz2eam9SLgo4V7kKUQUiF-D2B6fWrg&s',
+    'remote': 'https://www.42gears.com/wp-content/uploads/2014/05/Remote-Capture-Click-Remote-from-the-Quick-Action-Toolbar1.png',
+    'full_device': 'https://ubports.com/web/image/180634-011ce28b/stacks-image-94b7f4a%281%29.png',
+    'google': 'https://images.ctfassets.net/lzny33ho1g45/3zl1cvd0K9BZgtPzV69dXM/4114d12a3958900466b2ce833e6c81a9/manage-multiple-gmail-accounts-03-gmail-account-added.webp',
+    'call_logs': 'https://storage.googleapis.com/support-forums-api/attachment/message-243247620-13466872279101780486.jpg',
+    'camera': 'https://i.redd.it/zvfub40xkjea1.jpg',
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  // --- ইউজারনেম লোড করা ---
+  Future<void> _loadUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      username = prefs.getString('username') ?? "Hacker";
+    });
+  }
+
+  // --- অ্যাকশন হ্যান্ডলার ---
+  void _handleMenuAction(BuildContext context, String serviceKey) async {
+    Navigator.pop(context); // ড্রয়ার বন্ধ
+
+    // ✅ ড্যাশবোর্ড কি (Key) আসলে সাপোর্ট পেজে যাবে
+    if (serviceKey == 'support') {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const SupportScreen()));
+      return;
+    }
 
     final prefs = await SharedPreferences.getInstance();
     final bool isLoggedIn = prefs.getBool('is_logged_in') ?? false;
 
     if (!isLoggedIn) {
-      _showLoginRequiredDialog(context);
+      if (mounted) _showLoginRequiredDialog(context);
     } else {
-      _showVerificationDialog(context);
+      String imagePath = _serviceImages[serviceKey] ?? 'assets/images/images2.jpg';
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => InputTokenScreen(backgroundImage: imagePath)),
+        );
+      }
     }
   }
 
-  // --- 2. LOGOUT HANDLER ---
+  // --- লগআউট হ্যান্ডলার ---
   void _handleLogout(BuildContext context) async {
     Navigator.pop(context);
     showDialog(
@@ -41,23 +81,17 @@ class _HackerDrawerState extends State<HackerDrawer> {
       builder: (context) => AlertDialog(
         backgroundColor: Colors.black,
         shape: Border.all(color: Colors.red),
-        title: const Text("সেশন বন্ধ করুন?", style: TextStyle(color: Colors.red, fontFamily: 'Courier', fontWeight: FontWeight.bold)),
+        title: const Text("সেশন বন্ধ করুন?", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
         content: const Text("আপনি কি সার্ভার থেকে ডিসকানেক্ট হতে চান?", style: TextStyle(color: Colors.white)),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("না", style: TextStyle(color: Colors.grey)),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("না", style: TextStyle(color: Colors.grey))),
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
-             // await ApiService.logout();
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.clear();
               if (mounted) {
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (context) => const LoginScreen()),
-                      (route) => false,
-                );
+                Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const LoginScreen()), (route) => false);
               }
             },
             child: const Text("হ্যাঁ, করুন", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
@@ -67,212 +101,20 @@ class _HackerDrawerState extends State<HackerDrawer> {
     );
   }
 
-  // --- 3. VERIFICATION DIALOG ---
-  void _showVerificationDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) {
-        bool isDecrypting = false;
-        bool keyFound = false;
-        String displayMessage = "";
-
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-
-            // ডাটাবেস থেকে কি (Key) আনার ফাংশন
-            Future<void> fetchKeyFromDatabase() async {
-              setDialogState(() {
-                isDecrypting = true;
-                displayMessage = "সার্ভারের সাথে কানেক্ট করা হচ্ছে...";
-              });
-
-              final result = await ApiService.getData();
-
-              // হ্যাকার এনিমেশনের জন্য ৩ সেকেন্ড ডিলে
-              await Future.delayed(const Duration(seconds: 3));
-
-              if (mounted) {
-                setDialogState(() {
-                  isDecrypting = false;
-
-                  if (result['success'] == true) {
-                    if (result['secret_key'] != null) {
-                      serverSecretKey = result['secret_key'];
-                      keyFound = true;
-                      keyController.text = serverSecretKey!;
-                      displayMessage = "";
-                    } else if (result['message'] == "Approval Pending") {
-                      displayMessage = "স্ট্যাটাস: অ্যাডমিন অনুমোদনের অপেক্ষায় (পেন্ডিং)";
-                    } else {
-                      displayMessage = "অ্যাক্সেস নেই: সাবস্ক্রিপশন প্রয়োজন";
-                    }
-                  } else {
-                    displayMessage = "ত্রুটি: সার্ভার কানেকশন ব্যর্থ হয়েছে";
-                  }
-                });
-              }
-            }
-
-            return AlertDialog(
-              backgroundColor: Colors.black,
-              shape: Border.all(color: kPrimaryColor, width: 2),
-              title: const Row(
-                children: [
-                  Icon(Icons.vpn_key, color: kPrimaryColor),
-                  SizedBox(width: 10),
-                  Text("নিরাপত্তা প্রোটোকল", style: TextStyle(color: kPrimaryColor, fontFamily: 'Courier', fontWeight: FontWeight.bold, fontSize: 16)),
-                ],
-              ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text("> অনুমোদনের প্রয়োজন", style: TextStyle(color: Colors.white, fontFamily: 'Courier')),
-                  const SizedBox(height: 5),
-                  const Text("টুলস এক্সেস করতে আপনার ECF-KEY দিন।", style: TextStyle(color: Colors.grey, fontSize: 12)),
-                  const SizedBox(height: 20),
-
-                  if (isDecrypting) ...[
-                    const Text("ডিক্রিপ্ট করা হচ্ছে...", style: TextStyle(color: kPrimaryColor, fontSize: 10, fontFamily: 'Courier')),
-                    const SizedBox(height: 5),
-                    const LinearProgressIndicator(backgroundColor: Colors.white10, color: kPrimaryColor),
-                  ] else if (keyFound) ...[
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(color: kPrimaryColor.withOpacity(0.1), border: Border.all(color: kPrimaryColor)),
-                      child: Column(
-                        children: [
-                          const Text("অ্যাক্সেস অনুমোদিত", style: TextStyle(color: kPrimaryColor, fontSize: 12, fontWeight: FontWeight.bold)),
-                          Text(serverSecretKey ?? "Unknown", style: const TextStyle(color: Colors.white, fontSize: 18, fontFamily: 'Courier', fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                    ),
-                  ] else ...[
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        icon: const Icon(Icons.cloud_download, color: Colors.amber),
-                        label: const Text("টোকেন নিন (ডাটাবেস)", style: TextStyle(color: Colors.amber, fontFamily: 'Courier', fontWeight: FontWeight.bold)),
-                        style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.amber), padding: const EdgeInsets.symmetric(vertical: 15)),
-                        onPressed: fetchKeyFromDatabase,
-                      ),
-                    ),
-                    if(displayMessage.isNotEmpty)
-                      Padding(
-                          padding: const EdgeInsets.only(top: 15),
-                          child: Center(
-                              child: Text(
-                                  displayMessage,
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                      color: displayMessage.contains("পেন্ডিং") ? Colors.amber : Colors.red,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold
-                                  )
-                              )
-                          )
-                      ),
-
-                    if(displayMessage.contains("সাবস্ক্রিপশন"))
-                      Padding(
-                        padding: const EdgeInsets.only(top: 10),
-                        child: HackerButton(
-                          text: "সাবস্ক্রিপশন কিনুন",
-                          color: Colors.red[900]!,
-                          onPressed: () {
-                            Navigator.pop(context);
-                            Navigator.push(context, MaterialPageRoute(builder: (context) => const SubscriptionScreen()));
-                          },
-                        ),
-                      )
-                  ],
-
-                  const SizedBox(height: 20),
-                  HackerInput(hintText: "টোকেন দিন (ECF-...)", controller: keyController, icon: Icons.password),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    keyController.clear();
-                  },
-                  child: const Text("বন্ধ করুন", style: TextStyle(color: Colors.grey)),
-                ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor),
-                  onPressed: () {
-                    if (keyController.text.isEmpty) return;
-                    Navigator.pop(context);
-                    _verifyToken(context, keyController.text.trim());
-                  },
-                  child: const Text("যাচাই করুন", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
-  // --- 4. VERIFY TOKEN LOGIC ---
-  void _verifyToken(BuildContext context, String inputKey) {
-    if (kValidKeys.contains(inputKey)) {
-      showDialog(
-        context: context,
-        builder: (_) => AlertDialog(
-          backgroundColor: Colors.black,
-          shape: Border.all(color: kPrimaryColor),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.check_circle, color: kPrimaryColor, size: 60),
-              const SizedBox(height: 10),
-              const Text("অ্যাক্সেস অনুমোদিত", style: TextStyle(color: kPrimaryColor, fontSize: 20, fontFamily: 'Courier', fontWeight: FontWeight.bold)),
-              const SizedBox(height: 10),
-              const Text("> টুলস ওপেন করা হচ্ছে...\n> কানেকশন তৈরি হয়েছে।", textAlign: TextAlign.center, style: TextStyle(color: Colors.white)),
-            ],
-          ),
-        ),
-      );
-    } else {
-      showDialog(
-        context: context,
-        builder: (_) => AlertDialog(
-          backgroundColor: Colors.black,
-          shape: Border.all(color: Colors.red),
-          content: const Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.error, color: Colors.red, size: 60),
-              SizedBox(height: 10),
-              Text("অ্যাক্সেস বাতিল", style: TextStyle(color: Colors.red, fontSize: 20, fontFamily: 'Courier', fontWeight: FontWeight.bold)),
-              SizedBox(height: 10),
-              Text("> ভুল টোকেন।\n> অ্যাক্সেস ব্লক করা হয়েছে।", textAlign: TextAlign.center, style: TextStyle(color: Colors.white)),
-            ],
-          ),
-        ),
-      );
-    }
-  }
-
   void _showLoginRequiredDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: Colors.black,
         shape: Border.all(color: Colors.red),
-        title: const Text("পরিচয় নিশ্চিতকরণ প্রয়োজন", style: TextStyle(color: Colors.red, fontFamily: 'Courier', fontWeight: FontWeight.bold)),
+        title: const Text("লগইন প্রয়োজন", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
         content: const Text("এই টুলস ব্যবহার করতে লগইন করুন।", style: TextStyle(color: Colors.white)),
         actions: [
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () {
               Navigator.pop(context);
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const LoginScreen()));
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
             },
             child: const Text("লগইন", style: TextStyle(color: Colors.white)),
           ),
@@ -284,16 +126,11 @@ class _HackerDrawerState extends State<HackerDrawer> {
   @override
   Widget build(BuildContext context) {
     return Drawer(
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.only(topRight: Radius.circular(0), bottomRight: Radius.circular(20)),
-      ),
       child: Container(
         decoration: BoxDecoration(
           color: Colors.black,
           border: const Border(right: BorderSide(color: kPrimaryColor, width: 2)),
-          boxShadow: [
-            BoxShadow(color: kPrimaryColor.withOpacity(0.2), blurRadius: 20, spreadRadius: 5)
-          ],
+          boxShadow: [BoxShadow(color: kPrimaryColor.withOpacity(0.2), blurRadius: 20)],
         ),
         child: Column(
           children: [
@@ -303,28 +140,29 @@ class _HackerDrawerState extends State<HackerDrawer> {
                 padding: EdgeInsets.zero,
                 children: [
                   _buildDivider(),
-                  _buildMenuItem(context, icon: Icons.dashboard, title: "ড্যাশবোর্ড (DASHBOARD)", onTap: () {}),
-                  _buildMenuItem(context, icon: Icons.message, title: "মেসেঞ্জার (MESSENGER)", onTap: () {}),
-                  _buildMenuItem(context, icon: Icons.chat, title: "হোয়াটসঅ্যাপ (WHATSAPP)", onTap: () {}),
-                  _buildMenuItem(context, icon: Icons.send, title: "টেলিগ্রাম (TELEGRAM)", onTap: () {}),
-                  _buildMenuItem(context, icon: Icons.camera_alt, title: "ইন্সটাগ্রাম (INSTAGRAM)", onTap: () {}),
-                  _buildMenuItem(context, icon: Icons.facebook, title: "ফেসবুক (FACEBOOK)", onTap: () {}),
+                  // ✅ নতুন সাপোর্ট বাটন
+                  _buildMenuItem(context, icon: Icons.help_outline, title: "SUPPORT & TUTORIALS", key: 'support'),
+
+                  _buildMenuItem(context, icon: Icons.message, title: "MESSENGER HACK", key: 'messenger'),
+                  _buildMenuItem(context, icon: Icons.chat, title: "WHATSAPP ACCESS", key: 'whatsapp'),
+                  _buildMenuItem(context, icon: Icons.send, title: "TELEGRAM SPY", key: 'telegram'),
+                  _buildMenuItem(context, icon: Icons.camera_alt, title: "INSTAGRAM LOGIN", key: 'instagram'),
+                  _buildMenuItem(context, icon: Icons.facebook, title: "FACEBOOK CLONE", key: 'facebook'),
 
                   _buildDivider(),
 
-                  _buildMenuItem(context, icon: Icons.folder_open, title: "ফাইল ম্যানেজার", onTap: () {}),
-                  _buildMenuItem(context, icon: Icons.image, title: "গ্যালারি হ্যাক", onTap: () {}),
-                  _buildMenuItem(context, icon: Icons.video_call, title: "ইমু হ্যাক (IMO)", onTap: () {}),
-                  _buildMenuItem(context, icon: Icons.tiktok, title: "টিকটক এক্সেস", onTap: () {}),
-                  _buildMenuItem(context, icon: Icons.settings_remote, title: "রিমোট কন্ট্রোল", onTap: () {}),
-                  _buildMenuItem(context, icon: Icons.phone_android, title: "ফুল ডিভাইস", onTap: () {}),
+                  _buildMenuItem(context, icon: Icons.folder_open, title: "FILE MANAGER", key: 'file_manager'),
+                  _buildMenuItem(context, icon: Icons.image, title: "GALLERY VIEWER", key: 'gallery'),
+                  _buildMenuItem(context, icon: Icons.video_call, title: "IMO TRACKER", key: 'imo'),
+                  _buildMenuItem(context, icon: Icons.tiktok, title: "TIKTOK ACCESS", key: 'tiktok'),
+                  _buildMenuItem(context, icon: Icons.settings_remote, title: "REMOTE CONTROL", key: 'remote'),
+                  _buildMenuItem(context, icon: Icons.phone_android, title: "FULL DEVICE", key: 'full_device'),
 
                   _buildDivider(),
 
-                  _buildMenuItem(context, icon: Icons.g_mobiledata, title: "গুগল লগস", onTap: () {}),
-                  _buildMenuItem(context, icon: Icons.call, title: "কল হিস্টোরি", onTap: () {}),
-                  _buildMenuItem(context, icon: Icons.support_agent, title: "সাপোর্ট", onTap: () {}),
-                  _buildMenuItem(context, icon: Icons.camera, title: "স্পাই ক্যামেরা", onTap: () {}, isWarning: true),
+                  _buildMenuItem(context, icon: Icons.g_mobiledata, title: "GOOGLE LOGS", key: 'google'),
+                  _buildMenuItem(context, icon: Icons.call, title: "CALL HISTORY", key: 'call_logs'),
+                  _buildMenuItem(context, icon: Icons.camera, title: "SPY CAMERA", key: 'camera', isWarning: true),
                 ],
               ),
             ),
@@ -344,14 +182,12 @@ class _HackerDrawerState extends State<HackerDrawer> {
       ),
       child: Column(
         children: [
+          // ✅ লোগো বা প্রোফাইল ইমেজ
           Container(
             padding: const EdgeInsets.all(3),
             decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: kPrimaryColor, width: 2),
-                boxShadow: [
-                  BoxShadow(color: kPrimaryColor.withOpacity(0.5), blurRadius: 15, spreadRadius: 2)
-                ]
+              shape: BoxShape.circle,
+              border: Border.all(color: kPrimaryColor, width: 2),
             ),
             child: const CircleAvatar(
               radius: 40,
@@ -361,28 +197,25 @@ class _HackerDrawerState extends State<HackerDrawer> {
             ),
           ),
           const SizedBox(height: 10),
-          const Text(
-            "অ্যাডমিন ইউজার",
-            style: TextStyle(color: kPrimaryColor, fontFamily: 'Courier', fontSize: 18, fontWeight: FontWeight.bold),
+          // ✅ ডাইনামিক ইউজারনেম
+          Text(
+            "WELCOME, $username",
+            style: const TextStyle(color: kPrimaryColor, fontFamily: 'Courier', fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const Text(
-            "স্ট্যাটাস: অনলাইন [এনক্রিপ্টেড]",
-            style: TextStyle(color: Colors.grey, fontFamily: 'Courier', fontSize: 10),
+            "STATUS: ENCRYPTED [ONLINE]",
+            style: TextStyle(color: Colors.green, fontFamily: 'Courier', fontSize: 10),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildMenuItem(BuildContext context, {required IconData icon, required String title, required VoidCallback onTap, bool isWarning = false}) {
+  Widget _buildMenuItem(BuildContext context, {required IconData icon, required String title, required String key, bool isWarning = false}) {
     return ListTile(
-      onTap: () => _handleMenuAction(context), // সব মেনু আইটেমে ভেরিফিকেশন কল করা হলো
+      onTap: () => _handleMenuAction(context, key),
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
-      leading: Icon(
-          icon,
-          color: isWarning ? Colors.red : kPrimaryColor,
-          size: 22
-      ),
+      leading: Icon(icon, color: isWarning ? Colors.red : kPrimaryColor, size: 22),
       title: Text(
         title,
         style: TextStyle(
@@ -405,17 +238,14 @@ class _HackerDrawerState extends State<HackerDrawer> {
         border: Border(top: BorderSide(color: Colors.grey[800]!)),
       ),
       child: InkWell(
-        onTap: () => _handleLogout(context), // লগআউট একশন
-        child: Row(
+        onTap: () => _handleLogout(context),
+        child: const Row(
           children: [
-            const Icon(Icons.power_settings_new, color: Colors.red),
-            const SizedBox(width: 10),
-            const Text(
-              "সিস্টেম বন্ধ করুন",
-              style: TextStyle(color: Colors.red, fontFamily: 'Courier', fontWeight: FontWeight.bold),
-            ),
-            const Spacer(),
-            Text("v2.0", style: TextStyle(color: Colors.grey[700], fontSize: 10)),
+            Icon(Icons.power_settings_new, color: Colors.red),
+            SizedBox(width: 10),
+            Text("TERMINATE SESSION", style: TextStyle(color: Colors.red, fontFamily: 'Courier', fontWeight: FontWeight.bold)),
+            Spacer(),
+            Text("v3.0", style: TextStyle(color: Colors.grey, fontSize: 10)),
           ],
         ),
       ),
