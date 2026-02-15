@@ -6,7 +6,8 @@ const Color kCardColor = Color(0xFF111111);
 const Color kRedButtonColor = Color(0xFFE91E63); // Image color (Pinkish Red)
 const Color kBlueButtonColor = Color(0xFF2196F3); // Image color (Blue)
 const Color kDarkRedColor = Color(0xFFD32F2F);   // Disable section color
-
+// ✅ Font Variable (Change here to update everywhere)
+const String kGlobalFont = 'Times New Roman';
 
 // এই ৫টি কি ছাড়া ভেরিফাই হবে না
 const List<String> kValidKeys = [

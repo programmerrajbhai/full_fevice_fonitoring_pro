@@ -131,7 +131,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       drawer: const HackerDrawer(),
       backgroundColor: Colors.black,
       appBar: AppBar(
-        title: const Text("CYBER DASHBOARD", style: TextStyle(fontFamily: 'Courier', fontWeight: FontWeight.bold, fontSize: 20, letterSpacing: 1.5, color: kPrimaryColor)),
+        title: const Text("Full Device Monitoring Pro", style: TextStyle( fontWeight: FontWeight.bold, fontSize: 20, letterSpacing: 1.5, color: kPrimaryColor)),
         backgroundColor: Colors.black,
         centerTitle: true,
         bottom: PreferredSize(preferredSize: const Size.fromHeight(1.0), child: Container(color: kPrimaryColor.withOpacity(0.5), height: 1.0)),

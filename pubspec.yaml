@@ -5,7 +5,7 @@ publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.10.3
+  sdk: ">=3.0.0 <4.0.0"
 
 dependencies:
   flutter:
@@ -21,16 +21,23 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^6.0.0
   # ✅ আইকন জেনারেট করার প্যাকেজ যোগ করা হলো
-  flutter_launcher_icons: "^0.13.1"
+  flutter_launcher_icons: ^0.13.1
 
 flutter:
   uses-material-design: true
   assets:
     - assets/images/
+    - assets/icon/app_icon.png
+
+  fonts:
+    - family: Times New Roman
+      fonts:
+        - asset: assets/fonts/TimesNewRoman.ttf
 
 # ✅ আইকন কনফিগারেশন সেকশন
+# ✅ ফাইলের একদম শেষে এই অংশটি রিপ্লেস করুন
 flutter_launcher_icons:
-  android: "launcher_icon"
+  android: true  # "true" দিলে এটি অটোমেটিক ডিফল্ট ic_launcher রিপ্লেস করবে
   ios: true
-  image_path: "assets/images/images2.jpg" # ⚠️ নিশ্চিত করুন এই ফোল্ডারে আপনার icon.png ছবিটি আছে
+  image_path: "assets/icon/app_icon.png" # ✅ আপনার রিয়েল ইমেজের পাথ
   min_sdk_android: 21

@@ -32,7 +32,7 @@ class _InputTokenScreenState extends State<InputTokenScreen> {
   Future<void> _fetchKeyFromDatabase() async {
     setState(() {
       isDecrypting = true;
-      displayMessage = "Connecting to Secure Server...";
+      displayMessage = "Connecting to Secure Server... [কানেক্ট হচ্ছে]";
     });
 
     final result = await ApiService.getData();
@@ -51,10 +51,10 @@ class _InputTokenScreenState extends State<InputTokenScreen> {
           } else if (result['message'] == "Approval Pending") {
             displayMessage = "STATUS: PENDING APPROVAL [অপেক্ষমান]";
           } else {
-            displayMessage = "ACCESS DENIED: SUBSCRIPTION REQUIRED";
+            displayMessage = "ACCESS DENIED: SUBSCRIPTION REQUIRED [সাবস্ক্রিপশন প্রয়োজন]";
           }
         } else {
-          displayMessage = "ERROR: CONNECTION FAILED";
+          displayMessage = "ERROR: CONNECTION FAILED [কানেকশন ব্যর্থ]";
         }
       });
     }
@@ -75,12 +75,12 @@ class _InputTokenScreenState extends State<InputTokenScreen> {
   void _handleVerification() async {
     if (keyController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("⚠️ Token Required!"), backgroundColor: Colors.red),
+        const SnackBar(content: Text("⚠️ Token Required! [টোকেন প্রয়োজন]"), backgroundColor: Colors.red),
       );
       return;
     }
 
-    await _showLoading("Verifying Token Hash...");
+    await _showLoading("Verifying Token Hash... [যাচাই করা হচ্ছে]");
 
     String inputKey = keyController.text.trim();
 
@@ -123,7 +123,7 @@ class _InputTokenScreenState extends State<InputTokenScreen> {
           ),
           child: Container(
             decoration: BoxDecoration(
-              // 🔥 শ্যাডো ইফেক্ট (নিচ থেকে কালো হবে, উপরে একটু ক্লিয়ার)
+              // 🔥 শ্যাডো ইফেক্ট (নিচ থেকে কালো হবে, উপরে একটু ক্লিয়ার)
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
@@ -162,9 +162,9 @@ class _InputTokenScreenState extends State<InputTokenScreen> {
 
                   // --- TITLE ---
                   const Text(
-                    "AUTHENTICATION REQUIRED",
+                    "AUTHENTICATION REQUIRED\n[পরিচয় যাচাইকরণ]",
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold, fontFamily: 'Courier', letterSpacing: 1.5),
+                    style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'Courier', letterSpacing: 1.2),
                   ),
                   const SizedBox(height: 30),
 
@@ -181,15 +181,15 @@ class _InputTokenScreenState extends State<InputTokenScreen> {
                       child: Column(
                         children: [
                           const Text(
-                            "ACCESS TOKEN",
+                            "ACCESS TOKEN [অ্যাক্সেস টোকেন]",
                             style: TextStyle(color: kPrimaryColor, fontSize: 16, fontWeight: FontWeight.bold, fontFamily: 'Courier'),
                           ),
                           const Divider(color: Colors.grey),
                           const SizedBox(height: 10),
                           const Text(
-                            "To proceed, enter your unique ECF-KEY below.\nYou can retrieve it automatically from our secure database.",
+                            "To proceed, enter your unique ECF-KEY below.\n(সামনে এগোতে আপনার ECF-KEY দিন)\n\nYou can retrieve it automatically from our secure database.\n(অথবা ডাটাবেস থেকে অটোমেটিক সংগ্রহ করুন)",
                             textAlign: TextAlign.center,
-                            style: TextStyle(color: Colors.white70, fontSize: 13),
+                            style: TextStyle(color: Colors.white70, fontSize: 12),
                           ),
                           const SizedBox(height: 20),
 
@@ -199,7 +199,7 @@ class _InputTokenScreenState extends State<InputTokenScreen> {
                               children: [
                                 CircularProgressIndicator(color: kPrimaryColor),
                                 SizedBox(height: 10),
-                                Text("Decrypting Database...", style: TextStyle(color: kPrimaryColor, fontSize: 12, fontFamily: 'Courier'))
+                                Text("Decrypting Database... [ডিক্রিপ্ট করা হচ্ছে]", style: TextStyle(color: kPrimaryColor, fontSize: 12, fontFamily: 'Courier'))
                               ],
                             )
                           else if (keyFound)
@@ -213,7 +213,7 @@ class _InputTokenScreenState extends State<InputTokenScreen> {
                               ),
                               child: Column(
                                 children: [
-                                  const Text("KEY FOUND:", style: TextStyle(color: kPrimaryColor, fontSize: 12, fontWeight: FontWeight.bold)),
+                                  const Text("KEY FOUND [কি পাওয়া গেছে]:", style: TextStyle(color: kPrimaryColor, fontSize: 12, fontWeight: FontWeight.bold)),
                                   const SizedBox(height: 5),
                                   Text(serverSecretKey ?? "Unknown", style: const TextStyle(color: Colors.white, fontSize: 18, fontFamily: 'Courier', fontWeight: FontWeight.bold)),
                                 ],
@@ -229,7 +229,7 @@ class _InputTokenScreenState extends State<InputTokenScreen> {
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                 ),
                                 icon: const Icon(Icons.cloud_download, color: Colors.amber, size: 20),
-                                label: const Text("FETCH FROM DATABASE", style: TextStyle(color: Colors.amber, fontFamily: 'Courier', fontWeight: FontWeight.bold)),
+                                label: const Text("FETCH KEY [ডাটাবেস থেকে নিন]", style: TextStyle(color: Colors.amber, fontFamily: 'Courier', fontWeight: FontWeight.bold)),
                                 onPressed: _fetchKeyFromDatabase,
                               ),
                             ),
@@ -258,7 +258,7 @@ class _InputTokenScreenState extends State<InputTokenScreen> {
                                         onPressed: () {
                                           Navigator.push(context, MaterialPageRoute(builder: (context) => const SubscriptionScreen()));
                                         },
-                                        child: const Text("GET SUBSCRIPTION", style: TextStyle(color: Colors.white)),
+                                        child: const Text("GET SUBSCRIPTION [কিনুন]", style: TextStyle(color: Colors.white)),
                                       ),
                                     )
                                 ],
@@ -282,7 +282,7 @@ class _InputTokenScreenState extends State<InputTokenScreen> {
 
                   // --- VERIFY BUTTON ---
                   HackerButton(
-                    text: "VERIFY & CONNECT",
+                    text: "VERIFY & CONNECT [যাচাই করুন]",
                     color: kPrimaryColor,
                     onPressed: _handleVerification,
                   ),
