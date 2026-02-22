@@ -23,10 +23,36 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     {"name": "LIFETIME", "price": "12000", "duration": "∞ Forever"},
   ];
 
+  // ✅ ডাইনামিক পেমেন্ট লিস্টের জন্য ভেরিয়েবল
+  List<dynamic> paymentMethods = [];
+  bool isFetchingMethods = true;
+
   int selectedPlanIndex = -1;
   String selectedMethod = "Bkash";
   final TextEditingController trxController = TextEditingController();
   bool isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchPaymentMethods(); // পেজ লোড হলেই সার্ভার থেকে ডাটা আনবে
+  }
+
+  // ✅ সার্ভার থেকে নম্বর ফেচ করার ফাংশন
+  Future<void> _fetchPaymentMethods() async {
+    final methods = await ApiService.getPaymentMethods();
+    if (mounted) {
+      setState(() {
+        paymentMethods = methods;
+        isFetchingMethods = false;
+
+        // রেডিও বাটনের ডিফল্ট মেথড সেট করা
+        if (methods.isNotEmpty) {
+          selectedMethod = methods[0]['method_name'];
+        }
+      });
+    }
+  }
 
   void _submitPayment() async {
     final prefs = await SharedPreferences.getInstance();
@@ -59,7 +85,6 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     setState(() => isLoading = false);
 
     if (result['success']) {
-      // সফল হলে পেন্ডিং মেসেজ দেখাবে
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -69,19 +94,19 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           title: const Row(children: [
             Icon(Icons.watch_later_outlined, color: Colors.amber),
             SizedBox(width: 10),
-            Text("REQUEST SUBMITTED", style: TextStyle(color: Colors.amber, fontFamily: 'Courier', fontWeight: FontWeight.bold))
+            Text("REQUEST SUBMITTED", style: TextStyle(color: Colors.amber, fontFamily: kGlobalFont, fontWeight: FontWeight.bold))
           ]),
           content: const Text(
               "আপনার পেমেন্ট রিকোয়েস্ট জমা হয়েছে।\n\nঅ্যাডমিন চেক করে অ্যাপ্রুভ করার পর আপনি টোকেন এক্সেস করতে পারবেন। অনুগ্রহ করে অপেক্ষা করুন।",
-              style: TextStyle(color: Colors.white)
+              style: TextStyle(color: Colors.white, fontFamily: kGlobalFont)
           ),
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.pop(context); // ডায়লগ বন্ধ
-                Navigator.pop(context); // আগের পেজে ফেরত
+                Navigator.pop(context);
+                Navigator.pop(context);
               },
-              child: const Text("OK, I WILL WAIT", style: TextStyle(color: kPrimaryColor, fontWeight: FontWeight.bold)),
+              child: const Text("OK, I WILL WAIT", style: TextStyle(color: kPrimaryColor, fontWeight: FontWeight.bold, fontFamily: kGlobalFont)),
             )
           ],
         ),
@@ -96,11 +121,11 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: Colors.black,
-        title: const Text("LOGIN REQUIRED", style: TextStyle(color: Colors.red)),
-        content: const Text("Please login to purchase.", style: TextStyle(color: Colors.white)),
+        title: const Text("LOGIN REQUIRED", style: TextStyle(color: Colors.red, fontFamily: kGlobalFont)),
+        content: const Text("Please login to purchase.", style: TextStyle(color: Colors.white, fontFamily: kGlobalFont)),
         actions: [
           TextButton(
-            child: const Text("LOGIN NOW"),
+            child: const Text("LOGIN NOW", style: TextStyle(fontFamily: kGlobalFont)),
             onPressed: () {
               Navigator.pop(context);
               Navigator.push(context, MaterialPageRoute(builder: (context) => const LoginScreen()));
@@ -122,11 +147,11 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text("Scan with Bkash/Nagad", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+              const Text("Scan with Bkash/Nagad", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontFamily: kGlobalFont)),
               const SizedBox(height: 10),
               Image.asset("assets/images/image1.jpg", height: 200, width: 200, fit: BoxFit.cover),
               const SizedBox(height: 10),
-              TextButton(onPressed: () => Navigator.pop(context), child: const Text("CLOSE"))
+              TextButton(onPressed: () => Navigator.pop(context), child: const Text("CLOSE", style: TextStyle(fontFamily: kGlobalFont)))
             ],
           ),
         ),
@@ -139,7 +164,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        title: const Text("PREMIUM PACKAGES", style: TextStyle(fontFamily: 'Courier', fontWeight: FontWeight.bold)),
+        title: const Text("PREMIUM PACKAGES", style: TextStyle(fontFamily: kGlobalFont, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.black,
         iconTheme: const IconThemeData(color: kPrimaryColor),
       ),
@@ -148,32 +173,35 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- HEADER INFO ---
+            // --- HEADER INFO (DYNAMIC) ---
             Container(
               padding: const EdgeInsets.all(15),
               decoration: BoxDecoration(
                 border: Border.all(color: kPrimaryColor),
                 color: kPrimaryColor.withOpacity(0.1),
               ),
-              child: Column(
+              child: isFetchingMethods
+                  ? const Center(child: CircularProgressIndicator(color: kPrimaryColor))
+                  : Column(
                 children: [
-                  _buildPaymentRow("বিকাশ (Personal)", "01781933543"),
-                  const SizedBox(height: 5),
-                  _buildPaymentRow("নগদ (Personal)", "01781933543"),
-                  const Divider(color: Colors.grey),
-                  const Text("💁 বিকাশ--নগদ- সেন্ড মানি ✅️", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 5),
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.qr_code_scanner, color: Colors.black),
-                    label: const Text("SHOW QR CODE", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-                    style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor),
-                    onPressed: _showQRCode,
-                  )
+                  // ✅ ডাইনামিক নম্বর লিস্ট লুপ চালানো হচ্ছে
+                  if (paymentMethods.isEmpty)
+                    const Text("No active numbers found.", style: TextStyle(color: Colors.red)),
+
+                  ...paymentMethods.map((method) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8.0),
+                    child: _buildPaymentRow(
+                        "${method['method_name']} (${method['account_type']})",
+                        method['number']
+                    ),
+                  )),
+
+
                 ],
               ),
             ),
             const SizedBox(height: 20),
-            const Text("SELECT A PLAN:", style: TextStyle(color: Colors.grey, fontFamily: 'Courier')),
+            const Text("SELECT A PLAN:", style: TextStyle(color: Colors.grey, fontFamily: kGlobalFont)),
             const SizedBox(height: 10),
 
             // --- PLAN GRID ---
@@ -201,10 +229,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(plan['name'], style: TextStyle(color: isSelected ? Colors.black : Colors.white, fontWeight: FontWeight.bold)),
+                        Text(plan['name'], style: TextStyle(color: isSelected ? Colors.black : Colors.white, fontWeight: FontWeight.bold, fontFamily: kGlobalFont)),
                         const SizedBox(height: 5),
                         Text("${plan['price']}৳", style: TextStyle(color: isSelected ? Colors.black : kPrimaryColor, fontSize: 18, fontWeight: FontWeight.bold)),
-                        Text(plan['duration'], style: TextStyle(color: isSelected ? Colors.black54 : Colors.grey, fontSize: 10)),
+                        Text(plan['duration'], style: TextStyle(color: isSelected ? Colors.black54 : Colors.grey, fontSize: 10, fontFamily: kGlobalFont)),
                       ],
                     ),
                   ),
@@ -212,20 +240,24 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               },
             ),
             const SizedBox(height: 30),
-            const Text("CONFIRM PAYMENT:", style: TextStyle(color: Colors.grey, fontFamily: 'Courier')),
+            const Text("CONFIRM PAYMENT:", style: TextStyle(color: Colors.grey, fontFamily: kGlobalFont)),
             const SizedBox(height: 10),
 
-            Row(
-              children: [
-                _buildMethodRadio("Bkash"),
-                const SizedBox(width: 20),
-                _buildMethodRadio("Nagad"),
-              ],
-            ),
+            // ✅ ডাইনামিক রেডিও বাটন
+            if (!isFetchingMethods && paymentMethods.isNotEmpty)
+              Wrap(
+                spacing: 15,
+                runSpacing: 10,
+                children: paymentMethods.map((method) {
+                  // লিস্টে ইউনিক মেথড নাম রাখার জন্য (যাতে ডুপ্লিকেট রেডিও বাটন না হয়)
+                  return _buildMethodRadio(method['method_name']);
+                }).toSet().toList(), // toSet() ডুপ্লিকেট রিমুভ করবে
+              ),
+
             const SizedBox(height: 15),
 
             if(selectedPlanIndex != -1)
-              Text("Amount to Pay: ${plans[selectedPlanIndex]['price']}৳", style: const TextStyle(color: Colors.amber, fontSize: 16, fontWeight: FontWeight.bold)),
+              Text("Amount to Pay: ${plans[selectedPlanIndex]['price']}৳", style: const TextStyle(color: Colors.amber, fontSize: 16, fontWeight: FontWeight.bold, fontFamily: kGlobalFont)),
 
             const SizedBox(height: 10),
             HackerInput(
@@ -253,7 +285,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(title, style: const TextStyle(color: Colors.white)),
+        Text(title, style: const TextStyle(color: Colors.white, fontFamily: kGlobalFont)),
         InkWell(
           onTap: () {
             Clipboard.setData(ClipboardData(text: number));
@@ -261,7 +293,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           },
           child: Row(
             children: [
-              Text(number, style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.bold)),
+              Text(number, style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontFamily: kGlobalFont)),
               const SizedBox(width: 5),
               const Icon(Icons.copy, size: 14, color: Colors.grey),
             ],
@@ -275,13 +307,14 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     return GestureDetector(
       onTap: () => setState(() => selectedMethod = method),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
             selectedMethod == method ? Icons.radio_button_checked : Icons.radio_button_off,
             color: selectedMethod == method ? kPrimaryColor : Colors.grey,
           ),
           const SizedBox(width: 5),
-          Text(method, style: const TextStyle(color: Colors.white)),
+          Text(method, style: const TextStyle(color: Colors.white, fontFamily: kGlobalFont)),
         ],
       ),
     );

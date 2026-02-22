@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart'; // For debugPrint
 
 class ApiService {
-  static const String baseUrl = "https://publishuapp.com/hacker_api/api";
+  static const String baseUrl = "https://teamethicalcyberforce.com/hacker_api/api";
 
   // --- 1. REGISTER USER ---
   static Future<Map<String, dynamic>> register(
@@ -55,6 +55,32 @@ class ApiService {
       return {"success": false, "message": "Connection Error: $e"};
     }
   }
+
+
+
+  // ... existing code in api_service.dart ...
+
+  // নতুন ফাংশনটি যোগ করুন
+  static Future<List<dynamic>> getPaymentMethods() async {
+    try {
+      // ⚠️ আপনার সার্ভারের URL দিন
+      final response = await http.get(Uri.parse("$baseUrl/get_payment_methods.php"));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true) {
+          return data['data']; // ডাটাবেস থেকে লিস্ট রিটার্ন করবে
+        }
+      }
+      return [];
+    } catch (e) {
+      print("Error fetching methods: $e");
+      return [];
+    }
+  }
+
+// ... rest of the code ...
+
 
   // --- 2. LOGIN USER ---
   static Future<Map<String, dynamic>> login(
