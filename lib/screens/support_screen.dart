@@ -11,20 +11,23 @@ class SupportScreen extends StatefulWidget {
 }
 
 class _SupportScreenState extends State<SupportScreen> {
-  // --- ভিডিও লিস্ট (সঠিক ভিডিও আইডি ব্যবহার করবেন) ---
+  // --- ভিডিও লিস্ট ---
   final List<Map<String, String>> _videos = [
+
     {
-      "title": "কিভাবে একাউন্ট খুলবেন?",
-      "id": "iLnmTe5Q2Qw" // সঠিক ID
+      "title": "How to registration and setup Apps ?",
+      "id": "pnneRujiARQ"
     },
     {
-      "title": "সাবস্ক্রিপশন প্ল্যান কিভাবে নিবেন?",
-      "id": "dQw4w9WgXcQ" // ডেমো ID (পরিবর্তন করে নিবেন)
+      "title": "How to payment?",
+      "id": "A6emcnr44ZM"
     },
     {
-      "title": "কিভাবে কানেকশন তৈরি করবেন?",
-      "id": "M7lc1UVf-VE" // ডেমো ID (পরিবর্তন করে নিবেন)
+      "title": "Live demo video (how to work)",
+      "id": "ogIaOCOYsF0"
     },
+
+
   ];
 
   Future<void> _openWhatsApp(String number) async {
@@ -41,7 +44,7 @@ class _SupportScreenState extends State<SupportScreen> {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        title: const Text("SUPPORT & TUTORIALS", style: TextStyle(fontFamily: 'Courier', color: kPrimaryColor)),
+        title: const Text("SUPPORT & TUTORIALS", style: TextStyle(fontFamily: 'Courier', color: kPrimaryColor, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.black,
         iconTheme: const IconThemeData(color: kPrimaryColor),
       ),
@@ -69,7 +72,7 @@ class _SupportScreenState extends State<SupportScreen> {
             // ভিডিও লিস্ট জেনারেট করা হচ্ছে
             ListView.builder(
               shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(), // স্ক্রল যাতে প্যারেন্ট এর সাথে হয়
+              physics: const NeverScrollableScrollPhysics(), // স্ক্রল যাতে প্যারেন্ট এর সাথে হয়
               itemCount: _videos.length,
               itemBuilder: (context, index) {
                 return VideoCardItem(
@@ -99,7 +102,7 @@ class _SupportScreenState extends State<SupportScreen> {
   }
 }
 
-// ✅ আলাদা উইজেট বানানো হয়েছে মেমোরি লিক এবং ল্যাগ বন্ধ করার জন্য
+// ✅ আলাদা উইজেট বানানো হয়েছে মেমোরি লিক এবং ল্যাগ বন্ধ করার জন্য
 class VideoCardItem extends StatefulWidget {
   final String videoId;
   final String title;
@@ -116,7 +119,7 @@ class _VideoCardItemState extends State<VideoCardItem> {
   @override
   void initState() {
     super.initState();
-    // কন্ট্রোলার একবারই ইনিশিয়ালাইজ হবে
+    // কন্ট্রোলার ইনিশিয়ালাইজ করা হচ্ছে
     _controller = YoutubePlayerController(
       initialVideoId: widget.videoId,
       flags: const YoutubePlayerFlags(
@@ -124,21 +127,19 @@ class _VideoCardItemState extends State<VideoCardItem> {
         mute: false,
         enableCaption: false,
         isLive: false,
-        forceHD: false, // ল্যাগ কমানোর জন্য ফলস রাখা ভালো
+        forceHD: false,
       ),
     );
   }
 
   @override
   void deactivate() {
-    // ভিডিও পজ করা যখন উইজেট স্ক্রিনে থাকবে না
     _controller.pause();
     super.deactivate();
   }
 
   @override
   void dispose() {
-    // ⚠️ এই লাইনটি সবচেয়ে জরুরি: কন্ট্রোলার মেমোরি থেকে মুছে ফেলা
     _controller.dispose();
     super.dispose();
   }
@@ -146,10 +147,18 @@ class _VideoCardItemState extends State<VideoCardItem> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 20),
+      margin: const EdgeInsets.only(bottom: 25),
       decoration: BoxDecoration(
-        border: Border.all(color: kPrimaryColor.withOpacity(0.5)),
-        borderRadius: BorderRadius.circular(10),
+          color: Colors.black,
+          border: Border.all(color: kPrimaryColor.withOpacity(0.5)),
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: [
+            BoxShadow(
+              color: kPrimaryColor.withOpacity(0.1),
+              blurRadius: 10,
+              spreadRadius: 2,
+            )
+          ]
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -161,10 +170,19 @@ class _VideoCardItemState extends State<VideoCardItem> {
               showVideoProgressIndicator: true,
               progressIndicatorColor: kPrimaryColor,
               bottomActions: [
+                const SizedBox(width: 14.0),
                 CurrentPosition(),
-                ProgressBar(isExpanded: true, colors: const ProgressBarColors(playedColor: kPrimaryColor, handleColor: kPrimaryColor)),
+                const SizedBox(width: 8.0),
+                ProgressBar(
+                    isExpanded: true,
+                    colors: const ProgressBarColors(
+                        playedColor: kPrimaryColor,
+                        handleColor: kPrimaryColor
+                    )
+                ),
                 RemainingDuration(),
                 const PlaybackSpeedButton(),
+                const FullScreenButton(), // ✅ এখানে ফুলস্ক্রিন বাটন যোগ করা হয়েছে
               ],
             ),
           ),
@@ -172,7 +190,7 @@ class _VideoCardItemState extends State<VideoCardItem> {
             padding: const EdgeInsets.all(12.0),
             child: Text(
               widget.title,
-              style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+              style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold, fontFamily: 'Courier'),
             ),
           ),
         ],
