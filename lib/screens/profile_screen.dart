@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // ক্লিপবোর্ড এর জন্য
+import 'package:shared_preferences/shared_preferences.dart';
 import '../constants.dart';
 import '../widgets/hacker_button.dart';
 import '../services/api_service.dart';
@@ -23,11 +24,11 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   // ডাটা হোল্ডার ভেরিয়েবল
   String username = "FETCHING...";
-  String email = "ENCRYPTED";
+  String phone = "ENCRYPTED"; // ✅ email এর বদলে phone করা হলো
   String joinDate = "--/--/----";
   String planType = "Free Tier";
-  String planPrice = "0"; // নতুন: প্ল্যানের দাম
-  List<dynamic> accessKeys = []; // নতুন: কী (Keys) এর লিস্ট
+  String planPrice = "0"; // প্ল্যানের দাম
+  List<dynamic> accessKeys = []; // কী (Keys) এর লিস্ট
   bool isLoading = true;
 
   @override
@@ -46,11 +47,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       setState(() {
         if (data['success'] == true) {
           username = (data['username'] ?? "UNKNOWN").toString().toUpperCase();
-          email = data['email'] ?? "HIDDEN";
+          phone = data['phone'] ?? "HIDDEN"; // ✅ ডাটাবেস থেকে phone রিসিভ করা হচ্ছে
           joinDate = data['joined_date'] ?? "N/A";
           planType = data['plan_type'] ?? "Free Tier";
-          planPrice = data['plan_price']?.toString() ?? "0"; // প্রাইস সেট করা হলো
-          accessKeys = data['access_keys'] ?? []; // কী লিস্ট সেট করা হলো
+          planPrice = data['plan_price']?.toString() ?? "0";
+          accessKeys = data['access_keys'] ?? [];
 
           // যদি সার্ভার বলে সাবস্ক্রাইবড, কিন্তু অ্যাপে আপডেট না থাকে
           if (data['is_subscribed'] == true && !widget.isPremium) {
@@ -75,7 +76,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             Icon(Icons.vpn_key, color: kBlueButtonColor),
             SizedBox(width: 10),
-            Text("ACCESS VAULT", style: TextStyle(color: kBlueButtonColor, fontFamily: 'Courier', fontWeight: FontWeight.bold)),
+            Text("ACCESS VAULT", style: TextStyle(color: kBlueButtonColor, fontFamily: kGlobalFont, fontWeight: FontWeight.bold)),
           ],
         ),
         content: SizedBox(
@@ -98,17 +99,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text("ACTIVE PLAN:", style: TextStyle(color: Colors.grey, fontSize: 10, fontFamily: 'Courier')),
+                        const Text("ACTIVE PLAN:", style: TextStyle(color: Colors.grey, fontSize: 10, fontFamily: kGlobalFont)),
                         const SizedBox(height: 2),
-                        Text(planType, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'Courier')),
+                        Text(planType, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: kGlobalFont)),
                       ],
                     ),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        const Text("VALUE:", style: TextStyle(color: Colors.grey, fontSize: 10, fontFamily: 'Courier')),
+                        const Text("VALUE:", style: TextStyle(color: Colors.grey, fontSize: 10, fontFamily: kGlobalFont)),
                         const SizedBox(height: 2),
-                        Text("$planPrice৳", style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.bold, fontSize: 18, fontFamily: 'Courier')),
+                        Text("$planPrice৳", style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.bold, fontSize: 18, fontFamily: kGlobalFont)),
                       ],
                     ),
                   ],
@@ -116,14 +117,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
 
               const SizedBox(height: 20),
-              const Text("> DECRYPTED KEYS:", style: TextStyle(color: Colors.white, fontFamily: 'Courier', fontWeight: FontWeight.bold)),
+              const Text("> DECRYPTED KEYS:", style: TextStyle(color: Colors.white, fontFamily: kGlobalFont, fontWeight: FontWeight.bold)),
               const Divider(color: Colors.grey),
 
               // --- Keys List ---
               accessKeys.isEmpty
                   ? const Padding(
                 padding: EdgeInsets.symmetric(vertical: 20.0),
-                child: Center(child: Text("No Access Keys Found.\nUpgrade Plan to Unlock.", textAlign: TextAlign.center, style: TextStyle(color: Colors.red, fontFamily: 'Courier'))),
+                child: Center(child: Text("No Access Keys Found.\nUpgrade Plan to Unlock.", textAlign: TextAlign.center, style: TextStyle(color: Colors.red, fontFamily: kGlobalFont))),
               )
                   : SizedBox(
                 height: 200, // লিস্টের জন্য হাইট ফিক্স করা
@@ -133,8 +134,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   itemBuilder: (context, index) {
                     return Container(
                       margin: const EdgeInsets.symmetric(vertical: 5),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF111111),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF111111),
                         border: Border(left: BorderSide(color: kPrimaryColor, width: 3)),
                       ),
                       child: ListTile(
@@ -142,7 +143,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
                         title: Text(
                           accessKeys[index],
-                          style: const TextStyle(color: Colors.white, fontFamily: 'Courier', fontWeight: FontWeight.bold, fontSize: 13),
+                          style: const TextStyle(color: Colors.white, fontFamily: kGlobalFont, fontWeight: FontWeight.bold, fontSize: 13),
                         ),
                         trailing: IconButton(
                           icon: const Icon(Icons.copy, color: Colors.amber, size: 18),
@@ -162,7 +163,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("CLOSE VAULT", style: TextStyle(color: Colors.red, fontFamily: 'Courier', fontWeight: FontWeight.bold)),
+            child: const Text("CLOSE VAULT", style: TextStyle(color: Colors.red, fontFamily: kGlobalFont, fontWeight: FontWeight.bold)),
           )
         ],
       ),
@@ -192,28 +193,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             Icon(Icons.warning, color: Colors.red),
             SizedBox(width: 10),
-            Text("TERMINATE SESSION", style: TextStyle(color: Colors.red, fontFamily: 'Courier', fontWeight: FontWeight.bold)),
+            Text("TERMINATE SESSION", style: TextStyle(color: Colors.red, fontFamily: kGlobalFont, fontWeight: FontWeight.bold)),
           ],
         ),
         content: const Text(
           "Are you sure you want to disconnect from the server?",
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: Colors.white, fontFamily: kGlobalFont),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("CANCEL", style: TextStyle(color: Colors.grey)),
+            child: const Text("CANCEL", style: TextStyle(color: Colors.grey, fontFamily: kGlobalFont)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
               Navigator.pop(context);
-              //await ApiService.logout();
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.clear(); // লগআউট সেশন ক্লিয়ার
               if (mounted) {
                 Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const LoginScreen()), (route) => false);
               }
             },
-            child: const Text("DISCONNECT", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: const Text("DISCONNECT", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: kGlobalFont)),
           ),
         ],
       ),
@@ -229,8 +231,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: Colors.black,
       appBar: AppBar(
         title: const Text(
-          "USER_DOSSIER",
-          style: TextStyle(fontFamily: 'Courier', fontWeight: FontWeight.bold, fontSize: 18),
+          "USER DOSSIER",
+          style: TextStyle(fontFamily: kGlobalFont, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         backgroundColor: Colors.black,
         iconTheme: const IconThemeData(color: kPrimaryColor),
@@ -281,11 +283,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   children: [
                     _buildRow("IDENTITY", username),
                     const Divider(color: Colors.white10),
-                    _buildRow("EMAIL", email),
+                    _buildRow("PHONE NUMBER", phone), // ✅ PHONE NUMBER আপডেট করা হয়েছে
                     const Divider(color: Colors.white10),
                     _buildRow("ESTABLISHED", joinDate),
                     const Divider(color: Colors.white10),
-                    _buildRow("CURRENT PLAN", planType), // রিয়েল প্ল্যান
+                    _buildRow("CURRENT PLAN", planType),
                     const Divider(color: Colors.white10),
                     _buildRow(
                         "ACCESS LEVEL",
@@ -302,7 +304,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               if (!isVip) ...[
                 const Text(
                   "UPGRADE REQUIRED FOR FULL ACCESS",
-                  style: TextStyle(color: Colors.grey, fontSize: 10, fontFamily: 'Courier', letterSpacing: 1.2),
+                  style: TextStyle(color: Colors.grey, fontSize: 11, fontFamily: kGlobalFont, letterSpacing: 1.2),
                 ),
                 const SizedBox(height: 10),
                 HackerButton(
@@ -311,11 +313,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   onPressed: _navigateToSubscription,
                 ),
               ] else ...[
-                // প্রিমিয়াম ইউজারদের জন্য ভিউ অ্যাক্সেস বাটন
                 HackerButton(
                   text: "VIEW ACCESS KEYS & PLAN",
                   color: kBlueButtonColor,
-                  onPressed: _showAccessKeysDialog, // ডায়লগ কল করা হচ্ছে
+                  onPressed: _showAccessKeysDialog,
                 ),
               ],
 
@@ -338,7 +339,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 child: const Text(
                   "SESSION ID: 8X99-AF22 [SECURE]",
-                  style: TextStyle(color: Colors.white38, fontSize: 10, fontFamily: 'Courier'),
+                  style: TextStyle(color: Colors.white38, fontSize: 10, fontFamily: kGlobalFont),
                 ),
               ),
             ],
@@ -398,7 +399,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           Text(
             label,
-            style: const TextStyle(color: Colors.grey, fontFamily: 'Courier', fontSize: 12, fontWeight: FontWeight.w600),
+            style: const TextStyle(color: Colors.grey, fontFamily: kGlobalFont, fontSize: 12, fontWeight: FontWeight.w600),
           ),
           Expanded(
             child: Text(
@@ -407,7 +408,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: valueColor ?? Colors.white,
-                fontFamily: 'Courier',
+                fontFamily: kGlobalFont,
                 fontWeight: FontWeight.bold,
                 fontSize: 14,
               ),

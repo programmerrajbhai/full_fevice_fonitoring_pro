@@ -28,7 +28,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() => isLoading = true);
     FocusScope.of(context).unfocus();
 
-    // ✅ nameController এর ডাটা username হিসেবে পাঠানো হচ্ছে
+    // ✅ nameController এর ডাটা পাঠানো হচ্ছে
     final result = await ApiService.register(
         nameController.text.trim(),
         phoneController.text.trim(),
@@ -102,9 +102,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               const SizedBox(height: 40),
 
-              // ✅ Full Name Input (আপডেট করা হয়েছে)
+              // ✅ Full Name Input
               HackerInput(
-                hintText: "Full Name (আপনার পূর্ণ নাম)",
+                hintText: "Enter Username",
                 icon: Icons.person,
                 controller: nameController,
                 keyboardType: TextInputType.name,

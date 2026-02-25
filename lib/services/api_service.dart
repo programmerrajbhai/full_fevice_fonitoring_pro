@@ -6,56 +6,6 @@ import 'package:flutter/foundation.dart'; // For debugPrint
 class ApiService {
   static const String baseUrl = "https://teamethicalcyberforce.com/hacker_api/api";
 
-  // --- 1. REGISTER USER ---
-  static Future<Map<String, dynamic>> register(
-    String username,
-    String email,
-    String password,
-  ) async {
-    try {
-      debugPrint("Registering: $username, $email");
-
-      final response = await http.post(
-        Uri.parse("$baseUrl/register.php"),
-        body: jsonEncode({
-          "username": username,
-          "email": email,
-          "password": password,
-        }),
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json", // ⚠️ নতুন হেডার যুক্ত করা হলো
-        },
-      );
-
-      debugPrint("Register API Status: ${response.statusCode}");
-      debugPrint(
-        "Register API Body: '${response.body}'",
-      ); // ⚠️ Body এর আগে-পিছে কিছু আছে কিনা দেখতে
-
-      if (response.statusCode == 200) {
-        // ⚠️ Safe JSON Decoding (যাতে Exception না আসে)
-        try {
-          return jsonDecode(response.body);
-        } catch (e) {
-          debugPrint("JSON Decode Error in Register: $e");
-          return {
-            "success": false,
-            "message": "API Response Format Error. Check backend.",
-          };
-        }
-      } else {
-        return {
-          "success": false,
-          "message": "Server Error: ${response.statusCode}",
-        };
-      }
-    } catch (e) {
-      debugPrint("Register Exception: $e");
-      return {"success": false, "message": "Connection Error: $e"};
-    }
-  }
-
 
 
   // ... existing code in api_service.dart ...
@@ -82,74 +32,67 @@ class ApiService {
 // ... rest of the code ...
 
 
-  // --- 2. LOGIN USER ---
-  static Future<Map<String, dynamic>> login(
-    String email,
-    String password,
-  ) async {
-    try {
-      debugPrint("Logging in: $email");
 
+  // --- 1. REGISTER API ---
+  static Future<Map<String, dynamic>> register(String username, String phone, String password) async {
+    try {
       final response = await http.post(
-        Uri.parse("$baseUrl/login.php"),
-        body: jsonEncode({"email": email, "password": password}),
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json", // ⚠️ নতুন হেডার যুক্ত করা হলো
-        },
+        Uri.parse("$baseUrl/register.php"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "username": username,
+          "phone": phone, // ✅ এখানে 'email' এর বদলে 'phone' করা হয়েছে
+          "password": password
+        }),
       );
 
-      debugPrint("Login API Status: ${response.statusCode}");
-      debugPrint(
-        "Login API Body: '${response.body}'",
-      ); // ⚠️ Body এর আগে-পিছে কিছু আছে কিনা দেখতে
+      print("Register Response: ${response.body}"); // ডিবাগিং এর জন্য
 
       if (response.statusCode == 200) {
-        // ⚠️ Safe JSON Decoding
-        Map<String, dynamic> data;
-        try {
-          data = jsonDecode(response.body);
-        } catch (e) {
-          debugPrint("JSON Decode Error in Login: $e");
-          return {
-            "success": false,
-            "message":
-                "API Response Format Error. Server returning HTML or Spaces.",
-          };
-        }
-
-        if (data['success'] == true) {
-          final prefs = await SharedPreferences.getInstance();
-
-          var userId = data['user_id'];
-          if (userId is String) {
-            await prefs.setInt('user_id', int.tryParse(userId) ?? 0);
-          } else if (userId is int) {
-            await prefs.setInt('user_id', userId);
-          }
-
-          await prefs.setString('username', data['username']);
-
-          var isSub = data['is_subscribed'];
-          bool subStatus = false;
-          if (isSub is bool) subStatus = isSub;
-          if (isSub is int) subStatus = (isSub == 1);
-
-          await prefs.setBool('is_subscribed', subStatus);
-          await prefs.setBool('is_logged_in', true);
-        }
-        return data;
+        return jsonDecode(response.body);
       } else {
-        return {
-          "success": false,
-          "message": "Server Error: ${response.statusCode}",
-        };
+        return {"success": false, "message": "Server Error: ${response.statusCode}"};
       }
     } catch (e) {
-      debugPrint("Login Exception: $e");
-      return {"success": false, "message": "Connection Error: $e"};
+      return {"success": false, "message": "Connection Failed: $e"};
     }
   }
+
+  // --- 2. LOGIN API ---
+  static Future<Map<String, dynamic>> login(String phone, String password) async {
+    try {
+      final response = await http.post(
+        Uri.parse("$baseUrl/login.php"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "phone": phone, // ✅ এখানে 'email' এর বদলে 'phone' করা হয়েছে
+          "password": password
+        }),
+      );
+
+      print("Login Response: ${response.body}"); // ডিবাগিং এর জন্য
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+
+        // লগইন সফল হলে সেশন সেভ করা
+        if (data['success'] == true) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setBool('is_logged_in', true);
+          await prefs.setString('username', data['username'] ?? "User");
+        }
+
+        return data;
+      } else {
+        return {"success": false, "message": "Server Error: ${response.statusCode}"};
+      }
+    } catch (e) {
+      return {"success": false, "message": "Connection Failed: $e"};
+    }
+  }
+
+
+
 
   // ... (বাকি ফাংশনগুলো আগের মতোই থাকবে, তবে সেগুলোতেও "Accept": "application/json" হেডার দিতে পারেন)
   // --- 3. GET DATA ---
@@ -172,23 +115,32 @@ class ApiService {
   }
 
   // --- 4. GET PROFILE ---
+  // --- 4. GET PROFILE ---
   static Future<Map<String, dynamic>> getProfile() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final userId = prefs.getInt('user_id');
+
+      // user_id int বা String যাই হোক না কেন, সেফলি হ্যান্ডেল করা হলো
+      final userId = prefs.getInt('user_id') ?? prefs.getString('user_id');
       if (userId == null) return {"success": false, "message": "No user found"};
 
       final response = await http.post(
         Uri.parse("$baseUrl/get_profile.php"),
-        body: jsonEncode({"user_id": userId}),
+        body: jsonEncode({"user_id": userId.toString()}), // স্ট্রিং হিসেবে পাঠানো হচ্ছে
         headers: {"Content-Type": "application/json"},
       );
-      return jsonDecode(response.body);
+
+      print("Profile Response: ${response.body}"); // ডিবাগিং এর জন্য
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        return {"success": false, "message": "Server Error: ${response.statusCode}"};
+      }
     } catch (e) {
-      return {"success": false, "message": "Server Error"};
+      return {"success": false, "message": "Connection Error: $e"};
     }
   }
-
   // --- 5. UPGRADE SUBSCRIPTION ---
   static Future<Map<String, dynamic>> upgradeUser() async {
     try {

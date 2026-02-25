@@ -14,15 +14,15 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  // ✅ phoneController করা হলো
-  final TextEditingController phoneController = TextEditingController();
+  // ✅ loginController করা হলো (যেখানে ইউজারনেম বা ফোন নাম্বার বসবে)
+  final TextEditingController loginController = TextEditingController();
   final TextEditingController passController = TextEditingController();
   bool isLoading = false;
 
   void _handleLogin() async {
-    if (phoneController.text.trim().isEmpty || passController.text.trim().isEmpty) {
+    if (loginController.text.trim().isEmpty || passController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("দয়া করে ফোন নম্বর এবং পাসওয়ার্ড দিন"), backgroundColor: Colors.orange),
+        const SnackBar(content: Text("দয়া করে তথ্যগুলো সঠিকভাবে দিন"), backgroundColor: Colors.orange),
       );
       return;
     }
@@ -30,8 +30,8 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => isLoading = true);
     FocusScope.of(context).unfocus();
 
-    // ✅ login এ phone পাঠানো হচ্ছে
-    final result = await ApiService.login(phoneController.text.trim(), passController.text.trim());
+    // ✅ login এ ডাটা পাঠানো হচ্ছে
+    final result = await ApiService.login(loginController.text.trim(), passController.text.trim());
 
     if (!mounted) return;
     setState(() => isLoading = false);
@@ -69,12 +69,12 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 40),
 
-              // ✅ Phone Input
+              // ✅ Phone OR Username Input
               HackerInput(
-                  hintText: "Phone Number (ফোন নম্বর)",
-                  icon: Icons.phone_android,
-                  controller: phoneController,
-                  keyboardType: TextInputType.phone // নাম্বার কিবোর্ড আসবে
+                  hintText: "Phone Number or Username",
+                  icon: Icons.person_search,
+                  controller: loginController,
+                  keyboardType: TextInputType.text // টেক্সট কিবোর্ড আসবে
               ),
               const SizedBox(height: 15),
               HackerInput(
