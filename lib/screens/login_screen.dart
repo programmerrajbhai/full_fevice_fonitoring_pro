@@ -14,25 +14,24 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final TextEditingController emailController = TextEditingController();
+  // ✅ phoneController করা হলো
+  final TextEditingController phoneController = TextEditingController();
   final TextEditingController passController = TextEditingController();
   bool isLoading = false;
 
   void _handleLogin() async {
-    // ইমেইল বা পাসওয়ার্ড খালি থাকলে চেক
-    if (emailController.text.trim().isEmpty || passController.text.trim().isEmpty) {
+    if (phoneController.text.trim().isEmpty || passController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please fill all fields"), backgroundColor: Colors.orange),
+        const SnackBar(content: Text("দয়া করে ফোন নম্বর এবং পাসওয়ার্ড দিন"), backgroundColor: Colors.orange),
       );
       return;
     }
 
     setState(() => isLoading = true);
-
-    // কিবোর্ড নামিয়ে দেওয়ার জন্য
     FocusScope.of(context).unfocus();
 
-    final result = await ApiService.login(emailController.text.trim(), passController.text.trim());
+    // ✅ login এ phone পাঠানো হচ্ছে
+    final result = await ApiService.login(phoneController.text.trim(), passController.text.trim());
 
     if (!mounted) return;
     setState(() => isLoading = false);
@@ -61,28 +60,21 @@ class _LoginScreenState extends State<LoginScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // --- LOGO & TITLE ---
               const Icon(Icons.lock_open, size: 80, color: kPrimaryColor),
               const SizedBox(height: 15),
               const Text(
                 "SYSTEM ACCESS",
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                    color: kPrimaryColor,
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'Courier',
-                    letterSpacing: 2.0
-                ),
+                style: TextStyle(color: kPrimaryColor, fontSize: 26, fontWeight: FontWeight.bold, fontFamily: kGlobalFont, letterSpacing: 2.0),
               ),
               const SizedBox(height: 40),
 
-              // --- INPUT FIELDS ---
+              // ✅ Phone Input
               HackerInput(
-                  hintText: "Email Address",
-                  icon: Icons.email,
-                  controller: emailController,
-                  keyboardType: TextInputType.emailAddress
+                  hintText: "Phone Number (ফোন নম্বর)",
+                  icon: Icons.phone_android,
+                  controller: phoneController,
+                  keyboardType: TextInputType.phone // নাম্বার কিবোর্ড আসবে
               ),
               const SizedBox(height: 15),
               HackerInput(
@@ -94,24 +86,22 @@ class _LoginScreenState extends State<LoginScreen> {
 
               const SizedBox(height: 25),
 
-              // --- LOGIN BUTTON ---
               isLoading
                   ? const Center(child: CircularProgressIndicator(color: kPrimaryColor))
                   : HackerButton(
                 text: "LOGIN SYSTEM",
-                color: kBlueButtonColor, // নীল বাটন লগইনের জন্য
+                color: kBlueButtonColor,
                 onPressed: _handleLogin,
               ),
 
               const SizedBox(height: 40),
 
-              // --- DIVIDER DESIGN ---
               Row(
                 children: [
                   Expanded(child: Divider(color: Colors.grey.shade800)),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 10),
-                    child: Text("OR", style: TextStyle(color: Colors.grey.shade600, fontFamily: 'Courier')),
+                    child: Text("OR", style: TextStyle(color: Colors.grey.shade600, fontFamily: kGlobalFont)),
                   ),
                   Expanded(child: Divider(color: Colors.grey.shade800)),
                 ],
@@ -119,7 +109,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
               const SizedBox(height: 20),
 
-              // --- REGISTRATION SECTION (DESIGNED FOR CUSTOMERS) ---
               Container(
                 padding: const EdgeInsets.all(15),
                 decoration: BoxDecoration(
@@ -129,10 +118,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 child: Column(
                   children: [
-                    const Text(
-                      "আপনার কি ইউজার একাউন্ট নেই?",
-                      style: TextStyle(color: Colors.white70, fontSize: 14),
-                    ),
+                    const Text("আপনার কি ইউজার একাউন্ট নেই?", style: TextStyle(color: Colors.white70, fontSize: 14)),
                     const SizedBox(height: 10),
                     SizedBox(
                       width: double.infinity,
@@ -150,15 +136,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           children: [
                             Icon(Icons.person_add, color: kPrimaryColor, size: 18),
                             SizedBox(width: 8),
-                            Text(
-                              "রেজিস্ট্রেশন করুন",
-                              style: TextStyle(
-                                  color: kPrimaryColor,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  fontFamily: 'Courier'
-                              ),
-                            ),
+                            Text("রেজিস্ট্রেশন করুন", style: TextStyle(color: kPrimaryColor, fontSize: 16, fontWeight: FontWeight.bold, fontFamily: kGlobalFont)),
                           ],
                         ),
                       ),
