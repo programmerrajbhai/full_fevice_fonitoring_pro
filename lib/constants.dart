@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 
-const Color kBackgroundColor = Colors.black;
-const Color kPrimaryColor = Color(0xFF00FF00); // Neon Green (Hacker style)
-const Color kCardColor = Color(0xFF111111);
-const Color kRedButtonColor = Color(0xFFE91E63); // Image color (Pinkish Red)
-const Color kBlueButtonColor = Color(0xFF2196F3); // Image color (Blue)
-const Color kDarkRedColor = Color(0xFFD32F2F);   // Disable section color
-// ✅ Font Variable (Change here to update everywhere)
-const String kGlobalFont = 'Times New Roman';
+// Clean Professional Dark Theme Colors
+const Color kBackgroundColor = Color(0xFF0F172A); // Modern Slate Dark Background
+const Color kPrimaryColor = Color(0xFF3B82F6); // Professional Blue
+const Color kCardColor = Color(0xFF1E293B); // Slate Card Color
+const Color kRedButtonColor = Color(0xFFEF4444); // Clean Red
+const Color kBlueButtonColor = Color(0xFF3B82F6); // Clean Blue
+const Color kDarkRedColor = Color(0xFFB91C1C);
 
-// এই ৫টি কি ছাড়া ভেরিফাই হবে না
+// Standard Clean Font (Courier রিমুভ করা হয়েছে)
+const String kGlobalFont = 'Roboto';
+
 const List<String> kValidKeys = [
   "ECF-FDM-PRO-9K7A",
   "ECF-DEVICE-SEC-42M",
@@ -18,5 +19,4 @@ const List<String> kValidKeys = [
   "ECF-FULL-SEC-91A"
 ];
 
-
-const String kAdminKey = "ADMIN123"; // এই কি (Key) টি মিললে কাজ হবে
+const String kAdminKey = "ADMIN123";

@@ -3,7 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../constants.dart';
 import '../screens/login_screen.dart';
 import '../screens/input_token_screen.dart';
-import '../screens/support_screen.dart'; // ✅ নতুন সাপোর্ট পেজ ইম্পোর্ট
+import '../screens/support_screen.dart';
 
 class HackerDrawer extends StatefulWidget {
   const HackerDrawer({super.key});
@@ -13,25 +13,7 @@ class HackerDrawer extends StatefulWidget {
 }
 
 class _HackerDrawerState extends State<HackerDrawer> {
-  String username = "Anonymous"; // ডিফল্ট নাম
-
-  // --- ইমেজ কনফিগারেশন ---
-  final Map<String, String> _serviceImages = {
-    'messenger': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTNoG9imdTijPu9J1dEhynHfo7WaV4beIjBiQ&s',
-    'whatsapp': 'https://static0.anpoimages.com/wordpress/wp-content/uploads/2022/04/WhatsApp-generic-hero-app-interface.jpg',
-    'telegram': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSUJju0Wixdi3CVeS1TRPlkFbcYDcPHj_xM9w&s',
-    'instagram': 'https://images.squarespace-cdn.com/content/v1/5ccdce16cf9f386f5cc7dc85/fbe1c3cb-d566-4d2f-ade7-716b12b23b90/profile-pics-for-Instagram-profile-pics-for-IG-isabel-talens-36.jpg',
-    'facebook': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTGfaa2IlatyXU2GvnAgEya0cqxcxnoT-nB-Q&s',
-    'file_manager': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQhJfkVIMlvFTHi1AX3qFKgp3yax9xVTHHz-A&s',
-    'gallery': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTBOgeOFg8Ww7_MXZT1A2oVSCHE0yMFrPmDcA&s',
-    'imo': 'https://static.filerox.com/android/imo-beta/screenshot-2.png',
-    'tiktok': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSE8Q6-iz2eam9SLgo4V7kKUQUiF-D2B6fWrg&s',
-    'remote': 'https://www.42gears.com/wp-content/uploads/2014/05/Remote-Capture-Click-Remote-from-the-Quick-Action-Toolbar1.png',
-    'full_device': 'https://ubports.com/web/image/180634-011ce28b/stacks-image-94b7f4a%281%29.png',
-    'google': 'https://images.ctfassets.net/lzny33ho1g45/3zl1cvd0K9BZgtPzV69dXM/4114d12a3958900466b2ce833e6c81a9/manage-multiple-gmail-accounts-03-gmail-account-added.webp',
-    'call_logs': 'https://storage.googleapis.com/support-forums-api/attachment/message-243247620-13466872279101780486.jpg',
-    'camera': 'https://i.redd.it/zvfub40xkjea1.jpg',
-  };
+  String username = "User";
 
   @override
   void initState() {
@@ -39,19 +21,18 @@ class _HackerDrawerState extends State<HackerDrawer> {
     _loadUserData();
   }
 
-  // --- ইউজারনেম লোড করা ---
+  // --- Load Username ---
   Future<void> _loadUserData() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      username = prefs.getString('username') ?? "Hacker";
+      username = prefs.getString('username') ?? "User";
     });
   }
 
-  // --- অ্যাকশন হ্যান্ডলার ---
+  // --- Action Handler ---
   void _handleMenuAction(BuildContext context, String serviceKey) async {
-    Navigator.pop(context); // ড্রয়ার বন্ধ
+    Navigator.pop(context); // Close Drawer
 
-    // ✅ ড্যাশবোর্ড কি (Key) আসলে সাপোর্ট পেজে যাবে
     if (serviceKey == 'support') {
       Navigator.push(context, MaterialPageRoute(builder: (_) => const SupportScreen()));
       return;
@@ -63,7 +44,7 @@ class _HackerDrawerState extends State<HackerDrawer> {
     if (!isLoggedIn) {
       if (mounted) _showLoginRequiredDialog(context);
     } else {
-      String imagePath = _serviceImages[serviceKey] ?? 'assets/images/images2.jpg';
+      String imagePath = 'assets/images/images2.jpg';
       if (mounted) {
         Navigator.push(
           context,
@@ -73,19 +54,26 @@ class _HackerDrawerState extends State<HackerDrawer> {
     }
   }
 
-  // --- লগআউট হ্যান্ডলার ---
+  // --- End Session Handler ---
   void _handleLogout(BuildContext context) async {
     Navigator.pop(context);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: Colors.black,
-        shape: Border.all(color: Colors.red),
-        title: const Text("সেশন বন্ধ করুন?", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-        content: const Text("আপনি কি সার্ভার থেকে ডিসকানেক্ট হতে চান?", style: TextStyle(color: Colors.white)),
+        backgroundColor: kCardColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: const Text("End Session?", style: TextStyle(color: kRedButtonColor, fontWeight: FontWeight.bold)),
+        content: const Text("Are you sure you want to end your current session?", style: TextStyle(color: Colors.white70)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("না", style: TextStyle(color: Colors.grey))),
           TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancel", style: TextStyle(color: Colors.grey))
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+                backgroundColor: kRedButtonColor,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))
+            ),
             onPressed: () async {
               Navigator.pop(context);
               final prefs = await SharedPreferences.getInstance();
@@ -94,7 +82,7 @@ class _HackerDrawerState extends State<HackerDrawer> {
                 Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const LoginScreen()), (route) => false);
               }
             },
-            child: const Text("হ্যাঁ, করুন", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+            child: const Text("End Session", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -105,18 +93,25 @@ class _HackerDrawerState extends State<HackerDrawer> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: Colors.black,
-        shape: Border.all(color: Colors.red),
-        title: const Text("লগইন প্রয়োজন", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-        content: const Text("এই টুলস ব্যবহার করতে লগইন করুন।", style: TextStyle(color: Colors.white)),
+        backgroundColor: kCardColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: const Text("Authentication Required", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        content: const Text("Please login to access these tools.", style: TextStyle(color: Colors.white70)),
         actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+          ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: kPrimaryColor,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))
+            ),
             onPressed: () {
               Navigator.pop(context);
               Navigator.push(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
             },
-            child: const Text("লগইন", style: TextStyle(color: Colors.white)),
+            child: const Text("Login", style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -127,42 +122,50 @@ class _HackerDrawerState extends State<HackerDrawer> {
   Widget build(BuildContext context) {
     return Drawer(
       child: Container(
-        decoration: BoxDecoration(
-          color: Colors.black,
-          border: const Border(right: BorderSide(color: kPrimaryColor, width: 2)),
-          boxShadow: [BoxShadow(color: kPrimaryColor.withOpacity(0.2), blurRadius: 20)],
+        decoration: const BoxDecoration(
+          color: kBackgroundColor,
         ),
         child: Column(
           children: [
             _buildHeader(),
             Expanded(
               child: ListView(
-                padding: EdgeInsets.zero,
+                padding: const EdgeInsets.only(top: 10),
                 children: [
-                  _buildDivider(),
-                  // ✅ নতুন সাপোর্ট বাটন
-                  _buildMenuItem(context, icon: Icons.help_outline, title: "SUPPORT & TUTORIALS", key: 'support'),
-
-                  _buildMenuItem(context, icon: Icons.message, title: "MESSENGER HACK", key: 'messenger'),
-                  _buildMenuItem(context, icon: Icons.chat, title: "WHATSAPP ACCESS", key: 'whatsapp'),
-                  _buildMenuItem(context, icon: Icons.send, title: "TELEGRAM SPY", key: 'telegram'),
-                  _buildMenuItem(context, icon: Icons.camera_alt, title: "INSTAGRAM LOGIN", key: 'instagram'),
-                  _buildMenuItem(context, icon: Icons.facebook, title: "FACEBOOK CLONE", key: 'facebook'),
+                  _buildSectionTitle("SUPPORT"),
+                  _buildMenuItem(context, icon: Icons.help_outline, title: "Help & Tutorials", key: 'support'),
 
                   _buildDivider(),
 
-                  _buildMenuItem(context, icon: Icons.folder_open, title: "FILE MANAGER", key: 'file_manager'),
-                  _buildMenuItem(context, icon: Icons.image, title: "GALLERY VIEWER", key: 'gallery'),
-                  _buildMenuItem(context, icon: Icons.video_call, title: "IMO TRACKER", key: 'imo'),
-                  _buildMenuItem(context, icon: Icons.tiktok, title: "TIKTOK ACCESS", key: 'tiktok'),
-                  _buildMenuItem(context, icon: Icons.settings_remote, title: "REMOTE CONTROL", key: 'remote'),
-                  _buildMenuItem(context, icon: Icons.phone_android, title: "FULL DEVICE", key: 'full_device'),
+                  _buildSectionTitle("COMMUNICATION TOOLS"),
+                  _buildMenuItem(context, icon: Icons.message_outlined, title: "Messenger Tools", key: 'messenger'),
+                  _buildMenuItem(context, icon: Icons.chat_bubble_outline, title: "WhatsApp Tools", key: 'whatsapp'),
+                  _buildMenuItem(context, icon: Icons.send_outlined, title: "Telegram Tools", key: 'telegram'),
+                  _buildMenuItem(context, icon: Icons.video_call_outlined, title: "IMO Tools", key: 'imo'),
 
                   _buildDivider(),
 
-                  _buildMenuItem(context, icon: Icons.g_mobiledata, title: "GOOGLE LOGS", key: 'google'),
-                  _buildMenuItem(context, icon: Icons.call, title: "CALL HISTORY", key: 'call_logs'),
-                  _buildMenuItem(context, icon: Icons.camera, title: "SPY CAMERA", key: 'camera', isWarning: true),
+                  _buildSectionTitle("SOCIAL MEDIA TOOLS"),
+                  _buildMenuItem(context, icon: Icons.camera_alt_outlined, title: "Instagram Tools", key: 'instagram'),
+                  _buildMenuItem(context, icon: Icons.public, title: "Facebook Tools", key: 'facebook'),
+                  _buildMenuItem(context, icon: Icons.video_collection_outlined, title: "TikTok Tools", key: 'tiktok'),
+
+                  _buildDivider(),
+
+                  _buildSectionTitle("DEVICE MANAGEMENT"),
+                  _buildMenuItem(context, icon: Icons.smartphone, title: "Device Overview", key: 'full_device'),
+                  _buildMenuItem(context, icon: Icons.settings_remote, title: "Device Manager", key: 'remote'),
+                  _buildMenuItem(context, icon: Icons.folder_open, title: "File Explorer", key: 'file_manager'),
+                  _buildMenuItem(context, icon: Icons.image_outlined, title: "Media Viewer", key: 'gallery'),
+
+                  _buildDivider(),
+
+                  _buildSectionTitle("ACTIVITY & LOGS"),
+                  _buildMenuItem(context, icon: Icons.search, title: "Google Activity", key: 'google'),
+                  _buildMenuItem(context, icon: Icons.call_outlined, title: "Call Details", key: 'call_logs'),
+                  _buildMenuItem(context, icon: Icons.camera_outlined, title: "Camera Tools", key: 'camera'),
+
+                  const SizedBox(height: 20),
                 ],
               ),
             ),
@@ -175,14 +178,13 @@ class _HackerDrawerState extends State<HackerDrawer> {
 
   Widget _buildHeader() {
     return Container(
-      padding: const EdgeInsets.only(top: 50, bottom: 20),
+      padding: const EdgeInsets.fromLTRB(20, 60, 20, 20),
       decoration: BoxDecoration(
-        color: const Color(0xFF111111),
-        border: Border(bottom: BorderSide(color: kPrimaryColor.withOpacity(0.5))),
+        color: kCardColor,
+        border: Border(bottom: BorderSide(color: Colors.white.withOpacity(0.05))),
       ),
-      child: Column(
+      child: Row(
         children: [
-          // ✅ লোগো বা প্রোফাইল ইমেজ
           Container(
             padding: const EdgeInsets.all(3),
             decoration: BoxDecoration(
@@ -190,23 +192,52 @@ class _HackerDrawerState extends State<HackerDrawer> {
               border: Border.all(color: kPrimaryColor, width: 2),
             ),
             child: const CircleAvatar(
-              radius: 40,
-              backgroundColor: Colors.black,
+              radius: 30,
+              backgroundColor: kBackgroundColor,
               backgroundImage: AssetImage("assets/images/image1.jpg"),
-              child: Icon(Icons.person, size: 40, color: Colors.grey),
             ),
           ),
-          const SizedBox(height: 10),
-          // ✅ ডাইনামিক ইউজারনেম
-          Text(
-            "WELCOME, $username",
-            style: const TextStyle(color: kPrimaryColor, fontFamily: 'Courier', fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          const Text(
-            "STATUS: ENCRYPTED [ONLINE]",
-            style: TextStyle(color: Colors.green, fontFamily: 'Courier', fontSize: 10),
+          const SizedBox(width: 15),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "Welcome Back",
+                  style: TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.w500),
+                ),
+                Text(
+                  username,
+                  style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                      color: Colors.green.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(4)
+                  ),
+                  child: const Text(
+                    "System Status: Online",
+                    style: TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: Text(
+        title,
+        style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.2),
       ),
     );
   }
@@ -214,45 +245,57 @@ class _HackerDrawerState extends State<HackerDrawer> {
   Widget _buildMenuItem(BuildContext context, {required IconData icon, required String title, required String key, bool isWarning = false}) {
     return ListTile(
       onTap: () => _handleMenuAction(context, key),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
-      leading: Icon(icon, color: isWarning ? Colors.red : kPrimaryColor, size: 22),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+            color: kPrimaryColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8)
+        ),
+        child: Icon(icon, color: kPrimaryColor, size: 20),
+      ),
       title: Text(
         title,
         style: TextStyle(
-          color: isWarning ? Colors.redAccent : Colors.white,
-          fontFamily: 'Courier',
-          fontWeight: FontWeight.w600,
+          color: Colors.white.withOpacity(0.9),
+          fontWeight: FontWeight.w500,
           fontSize: 14,
         ),
       ),
-      trailing: Icon(Icons.arrow_forward_ios, size: 12, color: Colors.grey[800]),
-      hoverColor: kPrimaryColor.withOpacity(0.1),
+      trailing: Icon(Icons.chevron_right, size: 16, color: Colors.white.withOpacity(0.3)),
     );
   }
 
   Widget _buildFooter(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
-        color: Colors.black,
-        border: Border(top: BorderSide(color: Colors.grey[800]!)),
+        color: kCardColor,
+        border: Border(top: BorderSide(color: Colors.white.withOpacity(0.05))),
       ),
       child: InkWell(
         onTap: () => _handleLogout(context),
-        child: const Row(
-          children: [
-            Icon(Icons.power_settings_new, color: Colors.red),
-            SizedBox(width: 10),
-            Text("TERMINATE SESSION", style: TextStyle(color: Colors.red, fontFamily: 'Courier', fontWeight: FontWeight.bold)),
-            Spacer(),
-            Text("v3.0", style: TextStyle(color: Colors.grey, fontSize: 10)),
-          ],
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Row(
+            children: [
+              const Icon(Icons.logout, color: kRedButtonColor, size: 20),
+              const SizedBox(width: 12),
+              const Text("End Session", style: TextStyle(color: kRedButtonColor, fontWeight: FontWeight.w600, fontSize: 14)),
+              const Spacer(),
+              Text("v3.0", style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 11)),
+            ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildDivider() {
-    return Divider(color: kPrimaryColor.withOpacity(0.2), thickness: 1, indent: 20, endIndent: 20);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Divider(color: Colors.white.withOpacity(0.05), thickness: 1, indent: 20, endIndent: 20),
+    );
   }
 }

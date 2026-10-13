@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // ক্লিপবোর্ড এর জন্য
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../constants.dart';
 import '../widgets/hacker_button.dart';
@@ -22,22 +22,43 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  // ডাটা হোল্ডার ভেরিয়েবল
   String username = "FETCHING...";
-  String phone = "ENCRYPTED"; // ✅ email এর বদলে phone করা হলো
+  String phone = "ENCRYPTED";
   String joinDate = "--/--/----";
-  String planType = "Free Tier";
-  String planPrice = "0"; // প্ল্যানের দাম
-  List<dynamic> accessKeys = []; // কী (Keys) এর লিস্ট
+  String planType = "Basic Access";
+  String planPrice = "0";
+  List<dynamic> accessKeys = [];
+
   bool isLoading = true;
+  bool isUserLoggedIn = false;
 
   @override
   void initState() {
     super.initState();
-    _fetchProfileData();
+    _checkLoginStatus();
   }
 
-  // --- 1. REAL-TIME DATA FETCH ---
+  // --- চেক লগইন স্ট্যাটাস ---
+  Future<void> _checkLoginStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    bool loggedIn = prefs.getBool('is_logged_in') ?? false;
+
+    if (mounted) {
+      setState(() {
+        isUserLoggedIn = loggedIn;
+      });
+
+      if (loggedIn) {
+        _fetchProfileData();
+      } else {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
+  }
+
+  // --- রিয়েল টাইম ডাটা ফেচ ---
   Future<void> _fetchProfileData() async {
     setState(() => isLoading = true);
 
@@ -47,13 +68,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       setState(() {
         if (data['success'] == true) {
           username = (data['username'] ?? "UNKNOWN").toString().toUpperCase();
-          phone = data['phone'] ?? "HIDDEN"; // ✅ ডাটাবেস থেকে phone রিসিভ করা হচ্ছে
+          phone = data['phone'] ?? "HIDDEN";
           joinDate = data['joined_date'] ?? "N/A";
-          planType = data['plan_type'] ?? "Free Tier";
+          planType = data['plan_type'] ?? "Basic Access";
           planPrice = data['plan_price']?.toString() ?? "0";
           accessKeys = data['access_keys'] ?? [];
 
-          // যদি সার্ভার বলে সাবস্ক্রাইবড, কিন্তু অ্যাপে আপডেট না থাকে
           if (data['is_subscribed'] == true && !widget.isPremium) {
             widget.onUpgrade();
           }
@@ -65,18 +85,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  // --- 2. ACCESS KEYS DIALOG (NEW UI) ---
+  // --- অ্যাক্সেস কী ডায়ালগ (মডার্ন ক্লিন থিম) ---
   void _showAccessKeysDialog() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: Colors.black,
-        shape: Border.all(color: kBlueButtonColor, width: 2),
+        backgroundColor: kCardColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: const Row(
           children: [
-            Icon(Icons.vpn_key, color: kBlueButtonColor),
+            Icon(Icons.vpn_key, color: kPrimaryColor),
             SizedBox(width: 10),
-            Text("ACCESS VAULT", style: TextStyle(color: kBlueButtonColor, fontFamily: kGlobalFont, fontWeight: FontWeight.bold)),
+            Text("ACCESS VAULT", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
           ],
         ),
         content: SizedBox(
@@ -85,13 +105,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // --- Plan Details Box ---
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                    color: kBlueButtonColor.withOpacity(0.1),
-                    border: Border.all(color: kBlueButtonColor.withOpacity(0.5)),
-                    borderRadius: BorderRadius.circular(5)
+                    color: kBackgroundColor,
+                    border: Border.all(color: Colors.white.withOpacity(0.05)),
+                    borderRadius: BorderRadius.circular(8)
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -99,17 +118,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text("ACTIVE PLAN:", style: TextStyle(color: Colors.grey, fontSize: 10, fontFamily: kGlobalFont)),
+                        const Text("ACTIVE PLAN:", style: TextStyle(color: Colors.white54, fontSize: 10)),
                         const SizedBox(height: 2),
-                        Text(planType, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: kGlobalFont)),
+                        Text(planType, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                       ],
                     ),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        const Text("VALUE:", style: TextStyle(color: Colors.grey, fontSize: 10, fontFamily: kGlobalFont)),
+                        const Text("VALUE:", style: TextStyle(color: Colors.white54, fontSize: 10)),
                         const SizedBox(height: 2),
-                        Text("$planPrice৳", style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.bold, fontSize: 18, fontFamily: kGlobalFont)),
+                        Text("$planPrice৳", style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.bold, fontSize: 16)),
                       ],
                     ),
                   ],
@@ -117,39 +136,47 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
 
               const SizedBox(height: 20),
-              const Text("> DECRYPTED KEYS:", style: TextStyle(color: Colors.white, fontFamily: kGlobalFont, fontWeight: FontWeight.bold)),
-              const Divider(color: Colors.grey),
+              const Text("DECRYPTED KEYS:", style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 12)),
+              const Divider(color: Colors.white10),
 
-              // --- Keys List ---
               accessKeys.isEmpty
                   ? const Padding(
                 padding: EdgeInsets.symmetric(vertical: 20.0),
-                child: Center(child: Text("No Access Keys Found.\nUpgrade Plan to Unlock.", textAlign: TextAlign.center, style: TextStyle(color: Colors.red, fontFamily: kGlobalFont))),
+                child: Center(
+                    child: Text(
+                        "No Access Keys Found.\nUpgrade Plan to Unlock.",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: kRedButtonColor)
+                    )
+                ),
               )
                   : SizedBox(
-                height: 200, // লিস্টের জন্য হাইট ফিক্স করা
+                height: 200,
                 child: ListView.builder(
                   shrinkWrap: true,
                   itemCount: accessKeys.length,
                   itemBuilder: (context, index) {
                     return Container(
                       margin: const EdgeInsets.symmetric(vertical: 5),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF111111),
-                        border: Border(left: BorderSide(color: kPrimaryColor, width: 3)),
+                      decoration: BoxDecoration(
+                        color: kBackgroundColor,
+                        borderRadius: BorderRadius.circular(5),
+                        border: const Border(left: BorderSide(color: kPrimaryColor, width: 3)),
                       ),
                       child: ListTile(
                         dense: true,
                         contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
                         title: Text(
                           accessKeys[index],
-                          style: const TextStyle(color: Colors.white, fontFamily: kGlobalFont, fontWeight: FontWeight.bold, fontSize: 13),
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
                         ),
                         trailing: IconButton(
-                          icon: const Icon(Icons.copy, color: Colors.amber, size: 18),
+                          icon: const Icon(Icons.copy, color: Colors.white54, size: 18),
                           onPressed: () {
                             Clipboard.setData(ClipboardData(text: accessKeys[index]));
-                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Key Copied to Clipboard!"), duration: Duration(milliseconds: 500)));
+                            ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text("Key Copied to Clipboard!"), duration: Duration(milliseconds: 1000))
+                            );
                           },
                         ),
                       ),
@@ -163,59 +190,60 @@ class _ProfileScreenState extends State<ProfileScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("CLOSE VAULT", style: TextStyle(color: Colors.red, fontFamily: kGlobalFont, fontWeight: FontWeight.bold)),
+            child: const Text("CLOSE", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
           )
         ],
       ),
     );
   }
 
-  // --- NAVIGATION ---
   void _navigateToSubscription() async {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const SubscriptionScreen()),
     );
-    // পেজ থেকে ফিরলে ডাটা রিফ্রেশ হবে
     if (result == true || result == null) {
-      _fetchProfileData();
+      if (isUserLoggedIn) _fetchProfileData();
     }
   }
 
-  // --- LOGOUT ---
+  // --- LOGOUT HANDLER ---
   void _handleLogout() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: Colors.black,
-        shape: Border.all(color: Colors.red, width: 2),
+        backgroundColor: kCardColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: const Row(
           children: [
-            Icon(Icons.warning, color: Colors.red),
+            Icon(Icons.logout, color: kRedButtonColor),
             SizedBox(width: 10),
-            Text("TERMINATE SESSION", style: TextStyle(color: Colors.red, fontFamily: kGlobalFont, fontWeight: FontWeight.bold)),
+            Text("Logout Session", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
           ],
         ),
         content: const Text(
-          "Are you sure you want to disconnect from the server?",
-          style: TextStyle(color: Colors.white, fontFamily: kGlobalFont),
+          "Are you sure you want to securely log out from the server?",
+          style: TextStyle(color: Colors.white70, height: 1.5),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("CANCEL", style: TextStyle(color: Colors.grey, fontFamily: kGlobalFont)),
+            child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: kRedButtonColor,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))
+            ),
             onPressed: () async {
               Navigator.pop(context);
               final prefs = await SharedPreferences.getInstance();
-              await prefs.clear(); // লগআউট সেশন ক্লিয়ার
+              await prefs.clear();
               if (mounted) {
                 Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const LoginScreen()), (route) => false);
               }
             },
-            child: const Text("DISCONNECT", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: kGlobalFont)),
+            child: const Text("Logout", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -225,36 +253,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final bool isVip = widget.isPremium;
-    final Color statusColor = isVip ? kPrimaryColor : Colors.red;
+    final Color statusColor = isVip ? kPrimaryColor : kRedButtonColor;
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: kBackgroundColor,
       appBar: AppBar(
         title: const Text(
-          "USER DOSSIER",
-          style: TextStyle(fontFamily: kGlobalFont, fontWeight: FontWeight.bold, fontSize: 18),
+          "My Profile",
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white),
         ),
-        backgroundColor: Colors.black,
-        iconTheme: const IconThemeData(color: kPrimaryColor),
+        backgroundColor: kCardColor,
+        iconTheme: const IconThemeData(color: Colors.white),
         centerTitle: true,
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1.0),
-          child: Container(color: statusColor, height: 1.0),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _fetchProfileData,
-            tooltip: "Refresh Data",
-          )
-        ],
+        elevation: 1,
       ),
-      body: isLoading
+
+      // --- যদি লগইন করা না থাকে ---
+      body: !isUserLoggedIn && !isLoading
+          ? _buildLoginRequestView()
+          : isLoading
           ? Center(child: CircularProgressIndicator(color: statusColor))
           : RefreshIndicator(
         onRefresh: _fetchProfileData,
         color: statusColor,
-        backgroundColor: Colors.grey[900],
+        backgroundColor: kCardColor,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(20),
@@ -272,18 +294,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                    color: const Color(0xFF111111),
-                    border: Border.all(color: statusColor.withOpacity(0.6), width: 1.5),
-                    borderRadius: BorderRadius.circular(8),
+                    color: kCardColor,
+                    border: Border.all(color: Colors.white.withOpacity(0.05), width: 1.5),
+                    borderRadius: BorderRadius.circular(12),
                     boxShadow: [
-                      BoxShadow(color: statusColor.withOpacity(0.1), blurRadius: 10, spreadRadius: 1)
+                      BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 4))
                     ]
                 ),
                 child: Column(
                   children: [
                     _buildRow("IDENTITY", username),
                     const Divider(color: Colors.white10),
-                    _buildRow("PHONE NUMBER", phone), // ✅ PHONE NUMBER আপডেট করা হয়েছে
+                    _buildRow("PHONE NUMBER", phone),
                     const Divider(color: Colors.white10),
                     _buildRow("ESTABLISHED", joinDate),
                     const Divider(color: Colors.white10),
@@ -291,7 +313,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const Divider(color: Colors.white10),
                     _buildRow(
                         "ACCESS LEVEL",
-                        isVip ? "ADMIN (VIP)" : "RESTRICTED",
+                        isVip ? "PREMIUM (VIP)" : "RESTRICTED",
                         valueColor: statusColor
                     ),
                   ],
@@ -304,18 +326,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
               if (!isVip) ...[
                 const Text(
                   "UPGRADE REQUIRED FOR FULL ACCESS",
-                  style: TextStyle(color: Colors.grey, fontSize: 11, fontFamily: kGlobalFont, letterSpacing: 1.2),
+                  style: TextStyle(color: Colors.white54, fontSize: 11, letterSpacing: 1.2, fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 HackerButton(
-                  text: "UNLOCK PREMIUM (PACKAGES)",
+                  text: "Unlock Premium Access",
                   color: kPrimaryColor,
                   onPressed: _navigateToSubscription,
                 ),
               ] else ...[
                 HackerButton(
-                  text: "VIEW ACCESS KEYS & PLAN",
-                  color: kBlueButtonColor,
+                  text: "View Access Vault",
+                  color: kPrimaryColor,
                   onPressed: _showAccessKeysDialog,
                 ),
               ],
@@ -324,8 +346,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               // --- LOGOUT BUTTON ---
               HackerButton(
-                text: "DISCONNECT SYSTEM",
-                color: const Color(0xFFB71C1C),
+                text: "Logout System",
+                color: kRedButtonColor,
                 onPressed: _handleLogout,
               ),
 
@@ -334,12 +356,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.05),
+                    color: kCardColor,
                     borderRadius: BorderRadius.circular(5)
                 ),
                 child: const Text(
                   "SESSION ID: 8X99-AF22 [SECURE]",
-                  style: TextStyle(color: Colors.white38, fontSize: 10, fontFamily: kGlobalFont),
+                  style: TextStyle(color: Colors.white38, fontSize: 10),
                 ),
               ),
             ],
@@ -349,41 +371,82 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // --- WIDGETS ---
+  // --- লগইন রিকোয়েস্ট ভিউ ---
+  Widget _buildLoginRequestView() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(30.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.lock_outline, size: 80, color: Colors.white24),
+            const SizedBox(height: 20),
+            const Text(
+              "Authentication Required",
+              style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              "You must be logged in to view your profile and manage access settings.",
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white54, fontSize: 14, height: 1.5),
+            ),
+            const SizedBox(height: 30),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: kPrimaryColor,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                icon: const Icon(Icons.login, color: Colors.white),
+                label: const Text("Go to Login", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                onPressed: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => const LoginScreen()));
+                },
+              ),
+            )
+          ],
+        ),
+      ),
+    );
+  }
 
+  // --- WIDGETS ---
   Widget _buildAvatarSection(Color color, bool isVip) {
     return Center(
       child: Stack(
         alignment: Alignment.center,
         children: [
           Container(
-            width: 130,
-            height: 130,
+            width: 120,
+            height: 120,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(color: color.withOpacity(0.6), width: 2),
+              border: Border.all(color: color.withOpacity(0.8), width: 3),
               boxShadow: [
-                BoxShadow(color: color.withOpacity(0.2), blurRadius: 30, spreadRadius: 5),
+                BoxShadow(color: color.withOpacity(0.2), blurRadius: 20, spreadRadius: 2),
               ],
             ),
           ),
-          CircleAvatar(
-            radius: 55,
-            backgroundColor: const Color(0xFF1A1A1A),
-            child: Icon(Icons.person, size: 60, color: Colors.white.withOpacity(0.8)),
+          const CircleAvatar(
+            radius: 54,
+            backgroundColor: kBackgroundColor,
+            backgroundImage: AssetImage("assets/images/image1.jpg"),
           ),
           if (isVip)
             Positioned(
-              bottom: 5,
-              right: 5,
+              bottom: 0,
+              right: 0,
               child: Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: Colors.black,
+                  color: kCardColor,
                   shape: BoxShape.circle,
                   border: Border.all(color: color, width: 2),
                 ),
-                child: Icon(Icons.verified_user, color: color, size: 20),
+                child: Icon(Icons.verified_user, color: color, size: 18),
               ),
             ),
         ],
@@ -399,7 +462,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           Text(
             label,
-            style: const TextStyle(color: Colors.grey, fontFamily: kGlobalFont, fontSize: 12, fontWeight: FontWeight.w600),
+            style: const TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.w600),
           ),
           Expanded(
             child: Text(
@@ -408,7 +471,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: valueColor ?? Colors.white,
-                fontFamily: kGlobalFont,
                 fontWeight: FontWeight.bold,
                 fontSize: 14,
               ),

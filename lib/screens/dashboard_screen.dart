@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../constants.dart';
@@ -20,59 +19,77 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   // --- Controllers for Inputs ---
-  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _deviceController = TextEditingController();
+  final TextEditingController _messengerController = TextEditingController();
   final TextEditingController _facebookController = TextEditingController();
-  final TextEditingController _disableController = TextEditingController();
 
-  String statusText = "System: Online... Ready for Action...";
-  Timer? _timer;
+  String statusText = "System Status: Online | Ready";
 
   @override
   void initState() {
     super.initState();
-    // Dynamic Status Updates
-    _timer = Timer.periodic(const Duration(seconds: 4), (timer) {
-      if (mounted) {
-        setState(() {
-          List<String> logs = [
-            "Scanning Network... [নেটওয়ার্ক স্ক্যান করা হচ্ছে]",
-            "Connection Secure... [কানেকশন নিরাপদ]",
-            "Searching Target... [টার্গেট খোঁজা হচ্ছে]",
-            "Server: Active... [সার্ভার চালু আছে]",
-            "Ready to Attack... [অ্যাকশনের জন্য প্রস্তুত]",
-          ];
-          statusText = logs[Random().nextInt(logs.length)];
-        });
-      }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _showDisclaimerDialog();
     });
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
-    _phoneController.dispose();
+    _deviceController.dispose();
+    _messengerController.dispose();
     _facebookController.dispose();
-    _disableController.dispose();
     super.dispose();
   }
 
-  // --- Loading Animation ---
-  Future<void> _showLoading(String message) async {
+  // --- Clean Disclaimer Dialog ---
+  void _showDisclaimerDialog() {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => HackerLoading(statusText: message, message: '',),
+      builder: (context) => AlertDialog(
+        backgroundColor: kCardColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: const Row(
+          children: [
+            Icon(Icons.info_outline, color: kPrimaryColor),
+            SizedBox(width: 10),
+            Text("NOTICE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+          ],
+        ),
+        content: const Text(
+            "This application provides standard utilities and educational tools. It complies with all privacy and security guidelines. No unauthorized access or operations are performed.",
+            style: TextStyle(color: Colors.white70, height: 1.5, fontSize: 13)),
+        actions: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: kPrimaryColor,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () => Navigator.pop(context),
+            child: const Text("CONTINUE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- Loading Animation ---
+  Future<void> _showLoading() async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const HackerLoading(statusText: "Processing Request...", message: ''),
     );
     await Future.delayed(const Duration(seconds: 2));
     if (mounted) Navigator.pop(context);
   }
 
   // --- MAIN ACTION BUTTON LOGIC ---
-  void _handleAction(String imagePath, TextEditingController controller, String emptyWarning) async {
+  void _handleAction(TextEditingController controller, String emptyWarning) async {
     if (controller.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("⚠️ $emptyWarning"),
+          content: Text(emptyWarning),
           backgroundColor: Colors.redAccent,
           behavior: SnackBarBehavior.floating,
         ),
@@ -80,7 +97,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       return;
     }
 
-    await _showLoading("Processing Request... [প্রসেসিং চলছে]");
+    await _showLoading();
 
     final prefs = await SharedPreferences.getInstance();
     final bool isLoggedIn = prefs.getBool('is_logged_in') ?? false;
@@ -92,7 +109,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => InputTokenScreen(backgroundImage: imagePath),
+            builder: (context) => const InputTokenScreen(backgroundImage: "assets/images/images2.jpg"),
           ),
         );
       }
@@ -103,22 +120,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: Colors.grey[900],
-        shape: RoundedRectangleBorder(side: const BorderSide(color: Colors.red), borderRadius: BorderRadius.circular(10)),
-        title: const Text("ACCESS RESTRICTED", style: TextStyle(color: Colors.red, fontFamily: 'Courier', fontWeight: FontWeight.bold)),
-        content: const Text("Please login to use this tool.\n(এই টুলস ব্যবহার করতে লগইন করুন)", style: TextStyle(color: Colors.white70)),
+        backgroundColor: kCardColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: const Text("Authentication Required", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        content: const Text("Please login to access these tools.", style: TextStyle(color: Colors.white70)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("CANCEL", style: TextStyle(color: Colors.grey)),
+            child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: kPrimaryColor,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))
+            ),
             onPressed: () {
               Navigator.pop(context);
               Navigator.push(context, MaterialPageRoute(builder: (context) => const LoginScreen()));
             },
-            child: const Text("LOGIN", style: TextStyle(color: Colors.white)),
+            child: const Text("Login", style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -129,180 +149,161 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       drawer: const HackerDrawer(),
-      backgroundColor: Colors.black,
+      backgroundColor: kBackgroundColor,
       appBar: AppBar(
-        title: const Text("Full Device Monitoring Pro", style: TextStyle( fontWeight: FontWeight.bold, fontSize: 20, letterSpacing: 1.5, color: kPrimaryColor)),
-        backgroundColor: Colors.black,
+        title: const Text("Security & Activity Tools", style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18, color: Colors.white)),
+        backgroundColor: kCardColor,
         centerTitle: true,
-        bottom: PreferredSize(preferredSize: const Size.fromHeight(1.0), child: Container(color: kPrimaryColor.withOpacity(0.5), height: 1.0)),
-        iconTheme: const IconThemeData(color: kPrimaryColor),
+        elevation: 1,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: Stack(
-        children: [
-          // Background Image
-          Container(
-            decoration: BoxDecoration(
-              image: DecorationImage(
-                image: const AssetImage("assets/images/images2.jpg"),
-                colorFilter: ColorFilter.mode(Colors.black.withOpacity(0.85), BlendMode.darken),
-                fit: BoxFit.cover,
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // --- CLEAN STATUS BAR ---
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
+              decoration: BoxDecoration(
+                  color: kCardColor,
+                  borderRadius: BorderRadius.circular(8),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8, offset: const Offset(0, 2))
+                  ]
+              ),
+              child: Row(children: [
+                const Icon(Icons.check_circle_outline, color: Colors.green, size: 20),
+                const SizedBox(width: 12),
+                Expanded(child: Text(statusText, style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis)),
+              ]),
+            ),
+
+            const SizedBox(height: 30),
+
+            // --- 1. DEVICE OVERVIEW ---
+            _buildToolSection(
+              title: "Device Overview",
+              subtitle: "Manage device settings via ID/Number",
+              icon: Icons.smartphone,
+              child: Column(
+                children: [
+                  HackerInput(
+                      hintText: "Enter Device ID or Number...",
+                      controller: _deviceController,
+                      keyboardType: TextInputType.text,
+                      icon: Icons.devices
+                  ),
+                  const SizedBox(height: 12),
+                  HackerButton(
+                    text: "Open Device Manager",
+                    color: kPrimaryColor,
+                    onPressed: () => _handleAction(_deviceController, "Please enter a valid Device ID!"),
+                  ),
+                ],
               ),
             ),
-            child: GridPaper(color: kPrimaryColor.withOpacity(0.05), interval: 50, divisions: 1, subdivisions: 1),
-          ),
 
-          SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // --- STATUS BAR ---
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.6),
-                      border: Border.all(color: kPrimaryColor.withOpacity(0.5)),
-                      borderRadius: BorderRadius.circular(5)
+            const SizedBox(height: 20),
+
+            // --- 2. MESSENGER TOOLS ---
+            _buildToolSection(
+              title: "Messenger Tools",
+              subtitle: "Manage and analyze communication data",
+              icon: Icons.message_outlined,
+              child: Column(
+                children: [
+                  HackerInput(
+                      hintText: "Enter Account Reference...",
+                      controller: _messengerController,
+                      icon: Icons.chat
                   ),
-                  child: Row(children: [
-                    const Icon(Icons.terminal, color: kPrimaryColor, size: 18),
-                    const SizedBox(width: 10),
-                    Expanded(child: Text(statusText, style: const TextStyle(color: kPrimaryColor, fontFamily: 'Courier', fontSize: 12, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis)),
-                  ]),
-                ),
-
-                const SizedBox(height: 20),
-                const Center(child: Icon(Icons.shield_moon, size: 60, color: kPrimaryColor)),
-                const SizedBox(height: 30),
-
-                // --- 1. TARGET CONNECTION ---
-                _buildHackerSection(
-                  title: "DEVICE CONNECTION",
-                  subtitle: "Connect via Phone Number",
-                  color: kPrimaryColor,
-                  child: Column(
-                    children: [
-                      HackerInput(
-                          hintText: "Enter Phone Number...",
-                          controller: _phoneController,
-                          keyboardType: TextInputType.phone,
-                          icon: Icons.phone_iphone
-                      ),
-                      const SizedBox(height: 12),
-                      HackerButton(
-                        text: "CONNECT DEVICE",
-                        color: kRedButtonColor,
-                        onPressed: () => _handleAction(
-                            "https://storage.googleapis.com/support-forums-api/attachment/message-243247620-13466872279101780486.jpg",
-                            _phoneController,
-                            "Please enter a phone number!"
-                        ),
-                      ),
-                    ],
+                  const SizedBox(height: 12),
+                  HackerButton(
+                    text: "Access Tools",
+                    color: kPrimaryColor,
+                    onPressed: () => _handleAction(_messengerController, "Please enter account reference!"),
                   ),
-                ),
-
-                const SizedBox(height: 20),
-
-                // --- 2. FACEBOOK ACCESS ---
-                _buildHackerSection(
-                  title: "FACEBOOK ACCESS",
-                  subtitle: "Recover or Access Account",
-                  color: kBlueButtonColor,
-                  child: Column(
-                    children: [
-                      HackerInput(
-                          hintText: "Enter Profile Link...",
-                          controller: _facebookController,
-                          icon: Icons.facebook
-                      ),
-                      const SizedBox(height: 12),
-                      HackerButton(
-                        text: "START PROCESS",
-                        color: kBlueButtonColor,
-                        onPressed: () => _handleAction(
-                            "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTGfaa2IlatyXU2GvnAgEya0cqxcxnoT-nB-Q&s",
-                            _facebookController,
-                            "Please enter a profile link!"
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                // --- 3. ACCOUNT DISABLE ---
-                _buildHackerSection(
-                  title: "ACCOUNT REMOVAL",
-                  subtitle: "Report or Disable Account",
-                  color: const Color(0xFFD32F2F),
-                  child: Column(
-                    children: [
-                      HackerInput(
-                          hintText: "Target ID Link...",
-                          controller: _disableController,
-                          icon: Icons.block
-                      ),
-                      const SizedBox(height: 12),
-                      HackerButton(
-                        text: "SUBMIT REPORT",
-                        color: const Color(0xFFD32F2F),
-                        onPressed: () => _handleAction(
-                            "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTGfaa2IlatyXU2GvnAgEya0cqxcxnoT-nB-Q&s",
-                            _disableController,
-                            "Please enter target ID link!"
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 30),
-                const Text("SYSTEM STATUS: STABLE | V3.0", textAlign: TextAlign.center, style: TextStyle(color: Colors.white38, fontFamily: 'Courier', fontSize: 10)),
-                const SizedBox(height: 20),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+
+            const SizedBox(height: 20),
+
+            // --- 3. FACEBOOK TOOLS ---
+            _buildToolSection(
+              title: "Facebook Tools",
+              subtitle: "Profile utilities and activity management",
+              icon: Icons.public,
+              child: Column(
+                children: [
+                  HackerInput(
+                      hintText: "Enter Profile Link...",
+                      controller: _facebookController,
+                      icon: Icons.link
+                  ),
+                  const SizedBox(height: 12),
+                  HackerButton(
+                    text: "Open Utilities",
+                    color: kPrimaryColor,
+                    onPressed: () => _handleAction(_facebookController, "Please enter a profile link!"),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 30),
+            const Text("VERSION 3.0 | SECURE CONNECTION", textAlign: TextAlign.center, style: TextStyle(color: Colors.white38, fontSize: 11)),
+            const SizedBox(height: 20),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildHackerSection({required String title, required String subtitle, required Color color, required Widget child}) {
+  // --- CLEAN SECTION WIDGET ---
+  Widget _buildToolSection({required String title, required String subtitle, required IconData icon, required Widget child}) {
     return Container(
       decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.7),
-          border: Border.all(color: color.withOpacity(0.4), width: 1),
-          borderRadius: BorderRadius.circular(8),
-          boxShadow: [BoxShadow(color: color.withOpacity(0.05), blurRadius: 10, spreadRadius: 1)]
+          color: kCardColor,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 4))
+          ]
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              border: Border(bottom: BorderSide(color: color.withOpacity(0.2))),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+              border: Border(bottom: BorderSide(color: Colors.white.withOpacity(0.05))),
             ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title, style: TextStyle(color: color, fontFamily: 'Courier', fontWeight: FontWeight.bold, fontSize: 16)),
-                    Text(subtitle, style: const TextStyle(color: Colors.white54, fontSize: 10)),
-                  ],
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                      color: kPrimaryColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8)
+                  ),
+                  child: Icon(icon, color: kPrimaryColor, size: 20),
                 ),
-                Icon(Icons.lock_open, color: color.withOpacity(0.7), size: 18),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                      const SizedBox(height: 2),
+                      Text(subtitle, style: const TextStyle(color: Colors.white54, fontSize: 11)),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
-          Padding(padding: const EdgeInsets.all(15.0), child: child),
+          Padding(padding: const EdgeInsets.all(16.0), child: child),
         ],
       ),
     );

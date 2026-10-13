@@ -12,9 +12,9 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Device Monitor Pro',
+      title: 'Cyber Security Simulator', // নাম পরিবর্তন করা হয়েছে
       theme: ThemeData.dark(),
-      home: const SplashScreen(), // এখান থেকে শুরু হবে
+      home: const SplashScreen(),
     );
   }
 }
