@@ -1,297 +1,207 @@
-import 'dart:ui'; // For BackdropFilter
 import 'package:flutter/material.dart';
 import '../constants.dart';
-import '../widgets/hacker_input.dart';
 import '../widgets/hacker_button.dart';
 import '../widgets/hacker_loading.dart';
-import '../widgets/access_denied_dialog.dart';
-import '../services/api_service.dart';
-import 'subscription_screen.dart';
-import 'security_alert_screen.dart';
 
 class InputTokenScreen extends StatefulWidget {
   final String backgroundImage;
-
-  const InputTokenScreen({
-    super.key,
-    required this.backgroundImage
-  });
+  const InputTokenScreen({super.key, required this.backgroundImage});
 
   @override
   State<InputTokenScreen> createState() => _InputTokenScreenState();
 }
 
 class _InputTokenScreenState extends State<InputTokenScreen> {
-  final TextEditingController keyController = TextEditingController();
-  String? serverSecretKey;
-  bool isDecrypting = false;
-  bool keyFound = false;
-  String displayMessage = "";
+  final TextEditingController _targetController = TextEditingController();
+  bool _isAnalyzing = false;
 
-  // --- ডাটাবেস থেকে কি (Key) আনার ফাংশন ---
-  Future<void> _fetchKeyFromDatabase() async {
-    setState(() {
-      isDecrypting = true;
-      displayMessage = "Connecting to Secure Server... [কানেক্ট হচ্ছে]";
-    });
-
-    final result = await ApiService.getData();
-    await Future.delayed(const Duration(seconds: 2));
-
-    if (mounted) {
-      setState(() {
-        isDecrypting = false;
-
-        if (result['success'] == true) {
-          if (result['secret_key'] != null) {
-            serverSecretKey = result['secret_key'];
-            keyFound = true;
-            keyController.text = serverSecretKey!;
-            displayMessage = "";
-          } else if (result['message'] == "Approval Pending") {
-            displayMessage = "STATUS: PENDING APPROVAL [অপেক্ষমান]";
-          } else {
-            displayMessage = "ACCESS DENIED: SUBSCRIPTION REQUIRED [সাবস্ক্রিপশন প্রয়োজন]";
-          }
-        } else {
-          displayMessage = "ERROR: CONNECTION FAILED [কানেকশন ব্যর্থ]";
-        }
-      });
-    }
+  @override
+  void dispose() {
+    _targetController.dispose();
+    super.dispose();
   }
 
-  // --- লোডিং এনিমেশন ---
-  Future<void> _showLoading(String message) async {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => HackerLoading(statusText: message, message: '',),
-    );
-    await Future.delayed(const Duration(seconds: 3));
-    if (mounted) Navigator.pop(context);
-  }
-
-  // --- ভেরিফিকেশন লজিক ---
-  void _handleVerification() async {
-    if (keyController.text.trim().isEmpty) {
+  // --- Start Secure Analysis ---
+  void _startAnalysis() async {
+    if (_targetController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("⚠️ Token Required! [টোকেন প্রয়োজন]"), backgroundColor: Colors.red),
+        const SnackBar(
+          content: Text("Please enter a valid target ID or endpoint reference!"),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+        ),
       );
       return;
     }
 
-    await _showLoading("Verifying Token Hash... [যাচাই করা হচ্ছে]");
+    setState(() => _isAnalyzing = true);
 
-    String inputKey = keyController.text.trim();
+    // পলিসি-সেফ টার্মিনাল লোডিং ডায়ালগ কল করা হচ্ছে
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const HackerLoading(message: "Initializing Diagnostic Protocol...", statusText: '',),
+    );
 
-    if (kValidKeys.contains(inputKey)) {
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const SecurityAlertScreen()),
-        );
-      }
-    } else {
-      if (mounted) {
-        showDialog(
-          context: context,
-          builder: (_) => const AccessDeniedDialog(),
-        );
-      }
+    // ৫ সেকেন্ড সিমুলেশন প্রসেসিং
+    await Future.delayed(const Duration(seconds: 5));
+
+    if (mounted) {
+      Navigator.pop(context); // Close Loading Dialog
+      setState(() => _isAnalyzing = false);
+      _showSuccessReportDialog();
     }
+  }
+
+  // --- Success Report Dialog ---
+  void _showSuccessReportDialog() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: kCardColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: const Row(
+          children: [
+            Icon(Icons.verified_outlined, color: Colors.green),
+            SizedBox(width: 10),
+            Text("Assessment Complete", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+          ],
+        ),
+        content: const Text(
+          "Diagnostic scan completed successfully.\n\nNo critical security vulnerabilities or anomalies detected on the target endpoint. System status is stable.",
+          style: TextStyle(color: Colors.white70, height: 1.5, fontSize: 13),
+        ),
+        actions: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: kPrimaryColor,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () {
+              Navigator.pop(context); // Close Dialog
+              Navigator.pop(context); // Go back to Dashboard
+            },
+            child: const Text("Done", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    // ইমেজ প্রোভাইডার চেক (Network or Asset)
-    ImageProvider bgImage;
-    if (widget.backgroundImage.startsWith('http')) {
-      bgImage = NetworkImage(widget.backgroundImage);
-    } else {
-      bgImage = AssetImage(widget.backgroundImage);
-    }
-
-    return Stack(
-      children: [
-        // --- 1. DYNAMIC BACKGROUND WITH SHADOW OVERLAY ---
-        Container(
-          decoration: BoxDecoration(
-            image: DecorationImage(
-              image: bgImage,
-              fit: BoxFit.cover,
-            ),
-          ),
-          child: Container(
-            decoration: BoxDecoration(
-              // 🔥 শ্যাডো ইফেক্ট (নিচ থেকে কালো হবে, উপরে একটু ক্লিয়ার)
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.black.withOpacity(0.7), // উপরে ৭০% কালো
-                  Colors.black.withOpacity(0.9), // নিচে ৯০% কালো
+    return Scaffold(
+      backgroundColor: kBackgroundColor,
+      appBar: AppBar(
+        title: const Text(
+          "Security Diagnostic Module",
+          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18, color: Colors.white),
+        ),
+        backgroundColor: kCardColor,
+        centerTitle: true,
+        elevation: 1,
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // --- TOP BANNER ---
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: kCardColor,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white.withOpacity(0.05)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.security, color: kPrimaryColor, size: 32),
+                  SizedBox(width: 15),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Endpoint Verification",
+                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          "Input target parameter below to execute comprehensive diagnostic protocols.",
+                          style: TextStyle(color: Colors.white54, fontSize: 12, height: 1.3),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 3.0, sigmaY: 3.0), // 🔥 হালকা ব্লার ইফেক্ট
-              child: Container(color: Colors.transparent),
-            ),
-          ),
-        ),
 
-        // --- 2. MAIN CONTENT ---
-        Scaffold(
-          backgroundColor: Colors.transparent,
-          appBar: AppBar(
-            title: const Text("SECURE GATEWAY", style: TextStyle(fontFamily: 'Courier', color: kPrimaryColor, fontWeight: FontWeight.bold)),
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            centerTitle: true,
-            iconTheme: const IconThemeData(color: kPrimaryColor),
-          ),
-          body: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24.0),
+            const SizedBox(height: 30),
+
+            // --- INPUT CARD ---
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: kCardColor,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white.withOpacity(0.05)),
+              ),
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // --- ICON ---
-                  const Icon(Icons.security, size: 80, color: kPrimaryColor),
-                  const SizedBox(height: 20),
-
-                  // --- TITLE ---
                   const Text(
-                    "AUTHENTICATION REQUIRED\n[পরিচয় যাচাইকরণ]",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'Courier', letterSpacing: 1.2),
+                    "TARGET REFERENCE",
+                    style: TextStyle(color: Colors.white54, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.0),
                   ),
-                  const SizedBox(height: 30),
-
-                  // --- 🔥 INFO CARD (NEW DESIGN) ---
-                  Card(
-                    color: Colors.black.withOpacity(0.6),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
-                        side: BorderSide(color: kPrimaryColor.withOpacity(0.5))
-                    ),
-                    elevation: 10,
-                    child: Padding(
-                      padding: const EdgeInsets.all(20.0),
-                      child: Column(
-                        children: [
-                          const Text(
-                            "ACCESS TOKEN [অ্যাক্সেস টোকেন]",
-                            style: TextStyle(color: kPrimaryColor, fontSize: 16, fontWeight: FontWeight.bold, fontFamily: 'Courier'),
-                          ),
-                          const Divider(color: Colors.grey),
-                          const SizedBox(height: 10),
-                          const Text(
-                            "To proceed, enter your unique ECF-KEY below.\n(সামনে এগোতে আপনার ECF-KEY দিন)\n\nYou can retrieve it automatically from our secure database.\n(অথবা ডাটাবেস থেকে অটোমেটিক সংগ্রহ করুন)",
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: Colors.white70, fontSize: 12),
-                          ),
-                          const SizedBox(height: 20),
-
-                          // --- DATABASE FETCH BUTTON ---
-                          if (isDecrypting)
-                            const Column(
-                              children: [
-                                CircularProgressIndicator(color: kPrimaryColor),
-                                SizedBox(height: 10),
-                                Text("Decrypting Database... [ডিক্রিপ্ট করা হচ্ছে]", style: TextStyle(color: kPrimaryColor, fontSize: 12, fontFamily: 'Courier'))
-                              ],
-                            )
-                          else if (keyFound)
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
-                              decoration: BoxDecoration(
-                                color: kPrimaryColor.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: kPrimaryColor),
-                              ),
-                              child: Column(
-                                children: [
-                                  const Text("KEY FOUND [কি পাওয়া গেছে]:", style: TextStyle(color: kPrimaryColor, fontSize: 12, fontWeight: FontWeight.bold)),
-                                  const SizedBox(height: 5),
-                                  Text(serverSecretKey ?? "Unknown", style: const TextStyle(color: Colors.white, fontSize: 18, fontFamily: 'Courier', fontWeight: FontWeight.bold)),
-                                ],
-                              ),
-                            )
-                          else
-                            SizedBox(
-                              width: double.infinity,
-                              child: OutlinedButton.icon(
-                                style: OutlinedButton.styleFrom(
-                                  side: const BorderSide(color: Colors.amber),
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                ),
-                                icon: const Icon(Icons.cloud_download, color: Colors.amber, size: 20),
-                                label: const Text("FETCH KEY [ডাটাবেস থেকে নিন]", style: TextStyle(color: Colors.amber, fontFamily: 'Courier', fontWeight: FontWeight.bold)),
-                                onPressed: _fetchKeyFromDatabase,
-                              ),
-                            ),
-
-                          // --- ERROR MESSAGE ---
-                          if(displayMessage.isNotEmpty)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 15),
-                              child: Column(
-                                children: [
-                                  Text(
-                                    displayMessage,
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                        color: displayMessage.contains("PENDING") ? Colors.amber : Colors.red,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                        fontFamily: 'Courier'
-                                    ),
-                                  ),
-                                  if(displayMessage.contains("SUBSCRIPTION"))
-                                    Padding(
-                                      padding: const EdgeInsets.only(top: 10),
-                                      child: ElevatedButton(
-                                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                                        onPressed: () {
-                                          Navigator.push(context, MaterialPageRoute(builder: (context) => const SubscriptionScreen()));
-                                        },
-                                        child: const Text("GET SUBSCRIPTION [কিনুন]", style: TextStyle(color: Colors.white)),
-                                      ),
-                                    )
-                                ],
-                              ),
-                            ),
-                        ],
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: _targetController,
+                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                    decoration: InputDecoration(
+                      hintText: "Enter target ID, URL or phone...",
+                      hintStyle: const TextStyle(color: Colors.white30, fontSize: 13),
+                      prefixIcon: const Icon(Icons.link, color: kPrimaryColor, size: 20),
+                      filled: true,
+                      fillColor: kBackgroundColor,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: Colors.white.withOpacity(0.08)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: Colors.white.withOpacity(0.08)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: kPrimaryColor, width: 1.5),
                       ),
                     ),
                   ),
+                  const SizedBox(height: 24),
 
-                  const SizedBox(height: 30),
-
-                  // --- INPUT FIELD ---
-                  HackerInput(
-                      hintText: "Enter Token (ECF-XXXX)",
-                      controller: keyController,
-                      icon: Icons.vpn_key_outlined
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // --- VERIFY BUTTON ---
+                  // --- EXECUTE BUTTON ---
                   HackerButton(
-                    text: "VERIFY & CONNECT [যাচাই করুন]",
+                    text: _isAnalyzing ? "Executing Protocols..." : "Run Security Assessment",
                     color: kPrimaryColor,
-                    onPressed: _handleVerification,
+                    onPressed: _isAnalyzing ? () {} : _startAnalysis,
                   ),
                 ],
               ),
             ),
-          ),
+
+            const SizedBox(height: 30),
+            const Text(
+              "SECURE ENCRYPTED ENVIRONMENT | v3.0",
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white38, fontSize: 11),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }

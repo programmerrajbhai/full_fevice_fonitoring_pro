@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // প্রিফারেন্স চেক করার জন্য
 import '../constants.dart';
 import 'dashboard_screen.dart';
 import 'profile_screen.dart';
+import 'subscription_screen.dart';
 
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
@@ -13,72 +13,68 @@ class MainLayout extends StatefulWidget {
 
 class _MainLayoutState extends State<MainLayout> {
   int _currentIndex = 0;
-  bool isPremiumUser = false;
+  bool _isPremium = false;
+
+  final List<Widget> _screens = [];
 
   @override
   void initState() {
     super.initState();
-    _loadUserStatus();
+    _screens.addAll([
+      const DashboardScreen(),
+      SubscriptionScreen(),
+      ProfileScreen(
+        isPremium: _isPremium,
+        onUpgrade: () => setState(() => _isPremium = true),
+      ),
+    ]);
   }
 
-  // ইউজার স্ট্যাটাস লোড করা
-  void _loadUserStatus() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      isPremiumUser = prefs.getBool('is_subscribed') ?? false;
-    });
-  }
-
-  void _onItemTapped(int index) {
+  void _onTabTapped(int index) {
     setState(() {
       _currentIndex = index;
     });
   }
 
-  void _updateSubscriptionStatus(bool status) {
-    setState(() {
-      isPremiumUser = status;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
-    final List<Widget> screens = [
-      DashboardScreen(isPremium: isPremiumUser),
-      ProfileScreen(isPremium: isPremiumUser, onUpgrade: () => _updateSubscriptionStatus(true)),
-    ];
-
     return Scaffold(
-      backgroundColor: Colors.black,
-      body: screens[_currentIndex],
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.black,
-          border: const Border(top: BorderSide(color: kPrimaryColor, width: 2)),
-          boxShadow: [
-            BoxShadow(color: kPrimaryColor.withOpacity(0.3), blurRadius: 15, spreadRadius: 1)
-          ],
-        ),
-        child: BottomNavigationBar(
-          backgroundColor: Colors.black,
-          currentIndex: _currentIndex,
-          onTap: _onItemTapped,
-          type: BottomNavigationBarType.fixed,
-          selectedItemColor: kPrimaryColor,
-          unselectedItemColor: Colors.grey[700],
-          selectedLabelStyle: const TextStyle(fontFamily: 'Courier', fontWeight: FontWeight.bold),
-          unselectedLabelStyle: const TextStyle(fontFamily: 'Courier'),
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.dashboard_customize),
-              label: 'TERMINAL',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.shield_moon),
-              label: 'IDENTITY',
-            ),
-          ],
-        ),
+      body: IndexedStack(
+        index: _currentIndex,
+        children: [
+          const DashboardScreen(),
+          const SubscriptionScreen(),
+          ProfileScreen(
+            isPremium: _isPremium,
+            onUpgrade: () => setState(() => _isPremium = true),
+          ),
+        ],
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        onTap: _onTabTapped,
+        backgroundColor: kCardColor,
+        selectedItemColor: kPrimaryColor,
+        unselectedItemColor: Colors.white54,
+        type: BottomNavigationBarType.fixed,
+        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.dashboard_outlined),
+            activeIcon: Icon(Icons.dashboard),
+            label: "Dashboard",
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.star_outline),
+            activeIcon: Icon(Icons.star),
+            label: "Packages",
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            activeIcon: Icon(Icons.person),
+            label: "My Profile",
+          ),
+        ],
       ),
     );
   }
