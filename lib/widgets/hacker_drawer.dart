@@ -4,6 +4,7 @@ import '../constants.dart';
 import '../screens/login_screen.dart';
 import '../screens/input_token_screen.dart';
 import '../screens/support_screen.dart';
+import '../screens/legal_screen.dart'; // ✅ নতুন লিগ্যাল স্ক্রিন ইম্পোর্ট করা হয়েছে
 
 class HackerDrawer extends StatefulWidget {
   const HackerDrawer({super.key});
@@ -21,7 +22,6 @@ class _HackerDrawerState extends State<HackerDrawer> {
     _loadUserData();
   }
 
-  // --- Load Username ---
   Future<void> _loadUserData() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -29,12 +29,21 @@ class _HackerDrawerState extends State<HackerDrawer> {
     });
   }
 
-  // --- Action Handler ---
   void _handleMenuAction(BuildContext context, String serviceKey) async {
     Navigator.pop(context); // Close Drawer
 
     if (serviceKey == 'support') {
       Navigator.push(context, MaterialPageRoute(builder: (_) => const SupportScreen()));
+      return;
+    }
+
+    // ✅ প্রাইভেসি পলিসি এবং টার্মস পেজে যাওয়ার লজিক (লগইন ছাড়াও দেখা যাবে)
+    if (serviceKey == 'privacy') {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const LegalScreen(initialTabIndex: 0)));
+      return;
+    }
+    if (serviceKey == 'terms') {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const LegalScreen(initialTabIndex: 1)));
       return;
     }
 
@@ -54,7 +63,6 @@ class _HackerDrawerState extends State<HackerDrawer> {
     }
   }
 
-  // --- End Session Handler ---
   void _handleLogout(BuildContext context) async {
     Navigator.pop(context);
     showDialog(
@@ -132,8 +140,10 @@ class _HackerDrawerState extends State<HackerDrawer> {
               child: ListView(
                 padding: const EdgeInsets.only(top: 10),
                 children: [
-                  _buildSectionTitle("SUPPORT"),
+                  _buildSectionTitle("SUPPORT & LEGAL"),
                   _buildMenuItem(context, icon: Icons.help_outline, title: "Help & Tutorials", key: 'support'),
+                  _buildMenuItem(context, icon: Icons.privacy_tip_outlined, title: "Privacy Policy", key: 'privacy'),
+                  _buildMenuItem(context, icon: Icons.description_outlined, title: "Terms & Conditions", key: 'terms'),
 
                   _buildDivider(),
 
@@ -242,7 +252,7 @@ class _HackerDrawerState extends State<HackerDrawer> {
     );
   }
 
-  Widget _buildMenuItem(BuildContext context, {required IconData icon, required String title, required String key, bool isWarning = false}) {
+  Widget _buildMenuItem(BuildContext context, {required IconData icon, required String title, required String key}) {
     return ListTile(
       onTap: () => _handleMenuAction(context, key),
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),

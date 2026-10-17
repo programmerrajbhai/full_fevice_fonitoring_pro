@@ -1,8 +1,8 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import '../constants.dart';
-import '../widgets/hacker_input.dart';
-import '../widgets/hacker_button.dart';
 import '../services/api_service.dart';
+import 'legal_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -12,175 +12,325 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  final TextEditingController nameController = TextEditingController(); // ✅ Changed to nameController
-  final TextEditingController phoneController = TextEditingController();
-  final TextEditingController passController = TextEditingController();
-  bool isLoading = false;
+  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
 
-  void _handleRegister() async {
-    if (nameController.text.trim().isEmpty || phoneController.text.trim().isEmpty || passController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("সবগুলো ফিল্ড পূরণ করুন!"), backgroundColor: Colors.orange)
-      );
+  bool _isLoading = false;
+  bool _obscurePassword = true;
+  bool _agreedToTerms = false;
+
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _phoneController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  // --- REGISTER HANDLER ---
+  Future<void> _handleRegister() async {
+    final String username = _usernameController.text.trim();
+    final String phone = _phoneController.text.trim();
+    final String password = _passwordController.text.trim();
+    final String confirmPassword = _confirmPasswordController.text.trim();
+
+    if (username.isEmpty || phone.isEmpty || password.isEmpty) {
+      _showMessage("Please fill in all required fields.", isError: true);
       return;
     }
 
-    setState(() => isLoading = true);
-    FocusScope.of(context).unfocus();
-
-    // ✅ nameController এর ডাটা পাঠানো হচ্ছে
-    final result = await ApiService.register(
-        nameController.text.trim(),
-        phoneController.text.trim(),
-        passController.text.trim()
-    );
-
-    if (!mounted) return;
-    setState(() => isLoading = false);
-
-    if (result['success'] == true) {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (_) => AlertDialog(
-          backgroundColor: Colors.black,
-          shape: Border.all(color: kPrimaryColor, width: 2),
-          title: const Row(
-            children: [
-              Icon(Icons.check_circle, color: kPrimaryColor),
-              SizedBox(width: 10),
-              Text("SUCCESS", style: TextStyle(color: kPrimaryColor, fontFamily: kGlobalFont, fontWeight: FontWeight.bold)),
-            ],
-          ),
-          content: const Text("Identity Created Successfully.\nলগইন করে ব্যবহার শুরু করুন।", style: TextStyle(color: Colors.white, fontFamily: kGlobalFont)),
-          actions: [
-            TextButton(
-              style: TextButton.styleFrom(
-                backgroundColor: kPrimaryColor.withOpacity(0.1),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                side: const BorderSide(color: kPrimaryColor),
-              ),
-              child: const Text("GO TO LOGIN", style: TextStyle(color: kPrimaryColor, fontWeight: FontWeight.bold)),
-              onPressed: () {
-                Navigator.pop(context);
-                Navigator.pop(context);
-              },
-            )
-          ],
-        ),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result['message'] ?? "Registration Failed"), backgroundColor: Colors.red),
-      );
+    if (password.length < 6) {
+      _showMessage("Password must be at least 6 characters long.", isError: true);
+      return;
     }
+
+    if (password != confirmPassword) {
+      _showMessage("Passwords do not match!", isError: true);
+      return;
+    }
+
+    if (!_agreedToTerms) {
+      _showMessage("You must agree to the Privacy Policy and Terms of Use to register.", isError: true);
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final response = await ApiService.register(username, phone, password);
+
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+
+      if (response['success'] == true) {
+        _showMessage("Account created successfully! Please sign in.", isError: false);
+        Navigator.pop(context); // রেজিস্ট্রেশন সফল হলে লগইন পেজে ফেরত যাবে
+      } else {
+        _showMessage(response['message'] ?? "Registration failed. Try a different username or phone.", isError: true);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        _showMessage("Connection error. Please check your network.", isError: true);
+      }
+    }
+  }
+
+  void _showMessage(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: const TextStyle(color: Colors.white)),
+        backgroundColor: isError ? kRedButtonColor : Colors.green.shade700,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: kBackgroundColor,
       appBar: AppBar(
-        title: const Text("NEW IDENTITY", style: TextStyle(fontFamily: kGlobalFont, color: kPrimaryColor, fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.black,
-        iconTheme: const IconThemeData(color: kPrimaryColor),
-        elevation: 0,
+        title: const Text("Create Account", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600)),
+        backgroundColor: kCardColor,
+        centerTitle: true,
+        elevation: 1,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: Center(
+      body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Icon(Icons.person_add, size: 80, color: kPrimaryColor),
-              const SizedBox(height: 15),
               const Text(
-                "CREATE ACCESS",
-                textAlign: TextAlign.center,
-                style: TextStyle(color: kPrimaryColor, fontSize: 26, fontWeight: FontWeight.bold, fontFamily: kGlobalFont, letterSpacing: 2.0),
+                "Join Security & Activity Tools",
+                style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 40),
-
-              // ✅ Full Name Input
-              HackerInput(
-                hintText: "Enter Username",
-                icon: Icons.person,
-                controller: nameController,
-                keyboardType: TextInputType.name,
+              const SizedBox(height: 6),
+              const Text(
+                "Create a standard profile to manage your utilities and preferences.",
+                style: TextStyle(color: Colors.white54, fontSize: 13),
               ),
-              const SizedBox(height: 15),
-              HackerInput(
-                  hintText: "Phone Number (ফোন নম্বর)",
-                  icon: Icons.phone_android,
-                  controller: phoneController,
-                  keyboardType: TextInputType.phone
-              ),
-              const SizedBox(height: 15),
-              HackerInput(
-                  hintText: "Password (পাসওয়ার্ড)",
-                  icon: Icons.key,
-                  isObscure: true,
-                  controller: passController
-              ),
+              const SizedBox(height: 24),
 
-              const SizedBox(height: 25),
-
-              isLoading
-                  ? const Center(child: CircularProgressIndicator(color: kPrimaryColor))
-                  : HackerButton(text: "INITIATE REGISTRATION", color: kRedButtonColor, onPressed: _handleRegister),
-
-              const SizedBox(height: 40),
-
-              Row(
-                children: [
-                  Expanded(child: Divider(color: Colors.grey.shade800)),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                    child: Text("OR", style: TextStyle(color: Colors.grey.shade600, fontFamily: kGlobalFont)),
-                  ),
-                  Expanded(child: Divider(color: Colors.grey.shade800)),
-                ],
-              ),
-
-              const SizedBox(height: 20),
-
+              // --- REGISTRATION CARD ---
               Container(
-                padding: const EdgeInsets.all(15),
+                padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade900,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: kPrimaryColor.withOpacity(0.3)),
+                  color: kCardColor,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: Colors.white.withOpacity(0.05)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text("আপনার কি ইতিমধ্যে একাউন্ট আছে?", style: TextStyle(color: Colors.white70, fontSize: 14)),
-                    const SizedBox(height: 10),
+                    // --- USERNAME ---
+                    const Text(
+                      "USERNAME",
+                      style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.0),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _usernameController,
+                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                      decoration: _buildInputDecoration(
+                        hintText: "Choose a username",
+                        prefixIcon: Icons.person_outline,
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+
+                    // --- PHONE NUMBER ---
+                    const Text(
+                      "PHONE NUMBER",
+                      style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.0),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _phoneController,
+                      keyboardType: TextInputType.phone,
+                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                      decoration: _buildInputDecoration(
+                        hintText: "Enter your phone number",
+                        prefixIcon: Icons.phone_android_outlined,
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+
+                    // --- PASSWORD ---
+                    const Text(
+                      "PASSWORD",
+                      style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.0),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _passwordController,
+                      obscureText: _obscurePassword,
+                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                      decoration: _buildInputDecoration(
+                        hintText: "Minimum 6 characters",
+                        prefixIcon: Icons.lock_outline,
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                            color: Colors.white54,
+                            size: 20,
+                          ),
+                          onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+
+                    // --- CONFIRM PASSWORD ---
+                    const Text(
+                      "CONFIRM PASSWORD",
+                      style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.0),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _confirmPasswordController,
+                      obscureText: _obscurePassword,
+                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                      decoration: _buildInputDecoration(
+                        hintText: "Re-enter your password",
+                        prefixIcon: Icons.verified_user_outlined,
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+
+                    // --- PRIVACY & TERMS CHECKBOX ---
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(
+                          height: 24,
+                          width: 24,
+                          child: Checkbox(
+                            value: _agreedToTerms,
+                            activeColor: kPrimaryColor,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                            onChanged: (val) => setState(() => _agreedToTerms = val ?? false),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: RichText(
+                            text: TextSpan(
+                              style: const TextStyle(color: Colors.white60, fontSize: 12, height: 1.4),
+                              children: [
+                                const TextSpan(text: "By creating an account, I agree to the "),
+                                TextSpan(
+                                  text: "Privacy Policy",
+                                  style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.bold, decoration: TextDecoration.underline),
+                                  recognizer: TapGestureRecognizer()
+                                    ..onTap = () {
+                                      Navigator.push(context, MaterialPageRoute(builder: (_) => const LegalScreen(initialTabIndex: 0)));
+                                    },
+                                ),
+                                const TextSpan(text: " and "),
+                                TextSpan(
+                                  text: "Terms & Conditions",
+                                  style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.bold, decoration: TextDecoration.underline),
+                                  recognizer: TapGestureRecognizer()
+                                    ..onTap = () {
+                                      Navigator.push(context, MaterialPageRoute(builder: (_) => const LegalScreen(initialTabIndex: 1)));
+                                    },
+                                ),
+                                const TextSpan(text: "."),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // --- SUBMIT BUTTON ---
                     SizedBox(
                       width: double.infinity,
-                      child: OutlinedButton(
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: kPrimaryColor, width: 1.5),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+                      height: 48,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: kPrimaryColor,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
-                        onPressed: () => Navigator.pop(context),
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.login, color: kPrimaryColor, size: 18),
-                            SizedBox(width: 8),
-                            Text("লগইন করুন", style: TextStyle(color: kPrimaryColor, fontSize: 16, fontWeight: FontWeight.bold, fontFamily: kGlobalFont)),
-                          ],
+                        onPressed: _isLoading ? null : _handleRegister,
+                        child: _isLoading
+                            ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        )
+                            : const Text(
+                          "Create Account",
+                          style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
                         ),
                       ),
                     ),
                   ],
                 ),
               ),
+
+              const SizedBox(height: 24),
+
+              // --- BACK TO LOGIN ---
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text("Already have an account? ", style: TextStyle(color: Colors.white54, fontSize: 14)),
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: const Text(
+                      "Sign In",
+                      style: TextStyle(color: kPrimaryColor, fontSize: 14, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  InputDecoration _buildInputDecoration({
+    required String hintText,
+    required IconData prefixIcon,
+    Widget? suffixIcon,
+  }) {
+    return InputDecoration(
+      hintText: hintText,
+      hintStyle: const TextStyle(color: Colors.white30, fontSize: 13),
+      prefixIcon: Icon(prefixIcon, color: kPrimaryColor, size: 20),
+      suffixIcon: suffixIcon,
+      filled: true,
+      fillColor: kBackgroundColor,
+      contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide(color: Colors.white.withOpacity(0.08)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide(color: Colors.white.withOpacity(0.08)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: kPrimaryColor, width: 1.5),
       ),
     );
   }
